@@ -8,11 +8,8 @@ use std::{thread, time};
 const SIZE: u32 = 150;
 const RATE: u64 = 500;
 
-// When x is size / 2, y is at size
-// when y is size - 1, x is size / 2+ 1
-// when y is size - 2, x is size / 2 + 2
 fn main() {
-    let mut canvas = Canvas::new(10, 10);
+    let mut canvas = Canvas::new(SIZE, SIZE);
 
     let matrix = [[1; SIZE as usize]; SIZE as usize];
 
@@ -20,13 +17,11 @@ fn main() {
         thread::sleep(time::Duration::from_millis(RATE));
         canvas.clear();
 
-        canvas.set(SIZE, SIZE); // to ensure the thing stays the same size on every pass
-
         for i in 1..SIZE {
             for j in 1..SIZE {
                 if matrix[i as usize][j as usize] == 1 {
                     let color = random_color();
-                    canvas.set_colored(i, j, color);
+                    canvas.set_colored(j, i, color);
                 }
             }
         }
