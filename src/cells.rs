@@ -1,7 +1,8 @@
 use std::collections::HashSet;
 
+/// An abstraction of binary entries on a 2d grid
 pub struct Cells {
-    living_cells: HashSet<String>,
+    living_cells: HashSet<(u32, u32)>,
 }
 
 impl Cells {
@@ -11,27 +12,36 @@ impl Cells {
         }
     }
 
+    /// Mark this cell as alive (present in our internal hash set)
     pub fn birth(&mut self, i: u32, j: u32) {
-        self.living_cells.insert(format_cell_key(i, j));
+        self.living_cells.insert((i, j));
     }
 
+    /// A convenience method to mark multiple cells as alive at the same time, like:
+    /// birth_multiple(&[
+    ///     (5, 5),
+    ///     (6,6),
+    /// ])
     pub fn birth_multiple(&mut self, coords: &[(u32, u32)]) {
         coords.iter().for_each(|coord| {
             self.living_cells
-                .insert(format_cell_key(coord.0, coord.1));
+                .insert((coord.0, coord.1));
         })
     }
 
+    /// Mark this cell as not alive (no longer present in our internal hash set)
     pub fn kill(&mut self, i: u32, j: u32) {
-        self.living_cells.remove(&format_cell_key(i, j));
+        self.living_cells.remove(&(i, j));
     }
 
+    /// Is the given coord a living cell (as opposed to an empty or dead one)?
     pub fn is_alive(&self, i: u32, j: u32) -> bool {
-        self.living_cells.contains(&format_cell_key(i, j))
+        self.living_cells.contains(&(i, j))
     }
 
+    /// How many living neighbors are there of the given coord?
     pub fn num_living_neighbors(&self, i: u32, j: u32) -> u32 {
-        let neighbors = self.neighbors_by_key(i, j);
+        let neighbors = self.neighbors(i, j);
 
         let mut num_living_neighbors = 0;
 
@@ -44,6 +54,12 @@ impl Cells {
         num_living_neighbors
     }
 
+    // /// Get a list of all the living cells
+    // pub fn living_cells(&self) -> Vec<(u32, u32)> {
+    //     self.living_cells.iter().collect()
+    // }
+
+    /// All the neighbors of a given coord, as tuples
     pub fn neighbors(&self, i: u32, j: u32) -> Vec<(u32, u32)> {
         vec![
             (i - 1, j - 1),
@@ -56,16 +72,4 @@ impl Cells {
             (i + 1, j + 1),
         ]
     }
-
-    fn neighbors_by_key(&self, i: u32, j: u32) -> Vec<String> {
-        // TODO wouldn't it be nicer if I could just iterate over the returned map?
-        self.neighbors(i, j)
-            .iter()
-            .map(|coord| format_cell_key(coord.0, coord.1))
-            .collect::<Vec<String>>()
-    }
-}
-
-fn format_cell_key(i: u32, j: u32) -> String {
-    format!("{i}-{j}")
 }

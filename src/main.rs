@@ -7,6 +7,13 @@ use std::{thread, time};
 
 const RATE: u64 = 0;
 
+// TODO
+// * I think Cells needs a second memory space. B/c we might be doing calculation based on a state
+// half adjusted from the last state.
+// * I'd really love it for Game to not iterate over every cell every time, instead just looking
+// at the cells it needs to look at.
+//   - Get live cells from Cells
+
 // How to start looking for life:
 // * Fitness function -- bigger unique_iterations X Going to fall into local maxima of loops
 //                       Keep a history of snapshots, look for loops. Stop when you re-reach a
