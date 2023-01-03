@@ -119,7 +119,5 @@ impl Cells {
             self.extent_cells.insert(coord);
         });
         self.uncommitted_cells.clear();
-
-        println!("post commit, extent_cells length, uncommitted_cells length: {}, {}", self.extent_cells.len(), self.uncommitted_cells.len());
     }
 }

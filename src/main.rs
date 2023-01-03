@@ -6,7 +6,7 @@ use drawille::Canvas;
 use std::{thread, time};
 // use termsize;
 
-const RATE: u64 = 50;
+const RATE: u64 = 150;
 
 // TODO
 // * I think Cells needs a second memory space. B/c we might be doing calculation based on a state
@@ -22,6 +22,7 @@ const RATE: u64 = 50;
 // * Fitness function -- bigger unique_iterations X Going to fall into local maxima of loops
 //                       Keep a history of snapshots, look for loops. Stop when you re-reach a
 //                       state.
+//                    -- I like loops, loops with high period are the best.
 // * Mate -- A meme is a contiguous group, or a localized grouping with a small amount of space
 // * Mutations are memes placed nearby or randomly, or just random squares in the beginning
 
@@ -52,6 +53,7 @@ fn main() {
         (midpoint + 6, midpoint + 5),
         (midpoint + 7, midpoint + 4),
         (midpoint + 8, midpoint + 4),
+        (midpoint + 0, midpoint + 4),
     ]);
 
     // let snapshot = Snapshot::new();
