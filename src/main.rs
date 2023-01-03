@@ -1,11 +1,11 @@
 extern crate drawille;
 
+use conway::Cells;
 use drawille::Canvas;
 use drawille::PixelColor;
 use rand::Rng;
-use std::collections::HashSet;
 use std::{thread, time};
-use termsize;
+// use termsize;
 
 const RATE: u64 = 100;
 
@@ -16,14 +16,19 @@ const RATE: u64 = 100;
 // Survival: Each live cell with either two or three live neighbors will remain alive for the next generation.
 
 fn main() {
-    let termsize::Size { rows, cols } = termsize::get().unwrap();
+    // let termsize::Size { rows, cols } = termsize::get().unwrap();
     // let size: u32 = std::cmp::min(rows, cols) as u32;
     let size: u32 = 100;
 
     let mut canvas = Canvas::new(size, size);
 
+    // bring the term to its lowest position, just looks cleaner this way
+    print!("{}", canvas.frame());
+    print!("{}", canvas.frame());
+
     let mut cells = Cells::new();
 
+    // Get some initial configuration
     let midpoint = size / 2;
     cells.birth(midpoint, midpoint);
     cells.birth(midpoint, midpoint + 1);
@@ -70,55 +75,6 @@ fn main() {
         print!("{}[2J", 27 as char); // Clear the term
         print!("{}", canvas.frame());
     }
-}
-
-pub struct Cells {
-    living_cells: HashSet<String>,
-}
-
-impl Cells {
-    pub fn new() -> Cells {
-        Cells { living_cells: HashSet::new() }
-    }
-
-    pub fn birth(&mut self, i: u32, j: u32) {
-        self.living_cells.insert(format_cell_key(i, j));
-    }
-
-    pub fn kill(&mut self, i: u32, j: u32) {
-        self.living_cells.remove(&format_cell_key(i, j));
-    }
-
-    pub fn is_alive(&self, i: u32, j: u32) -> bool {
-        self.living_cells.contains(&format_cell_key(i, j))
-    }
-
-    pub fn num_living_neighbors(&self, i: u32, j: u32) -> u32 {
-        let neighbors = vec![
-            format_cell_key(i - 1, j - 1),
-            format_cell_key(i - 1, j),
-            format_cell_key(i - 1, j + 1),
-            format_cell_key(i, j - 1),
-            format_cell_key(i, j + 1),
-            format_cell_key(i + 1, j - 1),
-            format_cell_key(i + 1, j),
-            format_cell_key(i + 1, j + 1),
-        ];
-
-        let mut num_living_neighbors = 0;
-
-        neighbors.iter().for_each(|key| {
-            if self.living_cells.contains(key) {
-                num_living_neighbors += 1;
-            }
-        });
-
-        num_living_neighbors
-    }
-}
-
-fn format_cell_key(i: u32, j: u32) -> String {
-    format!("{i}-{j}")
 }
 
 fn random_color() -> PixelColor {
