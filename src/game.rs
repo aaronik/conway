@@ -8,8 +8,6 @@ pub struct Game {
     pub canvas: Option<Canvas>,
     pub cells: Cells,
     pub unique_iterations: usize,
-
-    size: u32,
 }
 
 impl Game {
@@ -17,14 +15,12 @@ impl Game {
     /// and it'll print the game to the screen at every step.
     pub fn new(
         snapshot: Option<Snapshot>,
-        size: u32,
         cells: Cells,
         canvas: Option<Canvas>,
     ) -> Game {
         Game {
             snapshot,
             canvas,
-            size,
             cells,
             unique_iterations: 0,
         }
@@ -68,7 +64,10 @@ impl Game {
                     self.cells.kill(i, j);
                 }
 
-                // Each live cell with 2 or 3 neighbors lives -- This is a noop for us
+                // Each live cell with 2 or 3 neighbors lives
+                if self.cells.is_alive(i, j) && [2, 3].contains(&num_living_neighbors) {
+                    self.cells.birth(i, j); // We say birth, but mean stay alive
+                }
 
                 // Every dead cell with 3 neighbors is born
                 if !self.cells.is_alive(i, j) && num_living_neighbors == 3 {
@@ -76,6 +75,7 @@ impl Game {
                 }
 
                 // Draw the cell if it's alive, add to snapshot
+                // This'll be behind by one iteration
                 if self.cells.is_alive(i, j) {
                     if let Some(snapshot) = &mut self.snapshot {
                         snapshot.add(i, j);
@@ -87,16 +87,17 @@ impl Game {
                     }
                 }
             });
-        // for i in 1..self.size {
-        //     for j in 1..self.size {}
-        // }
 
+        self.cells.commit();
+
+        // Draw
         if let Some(canvas) = &mut self.canvas {
             print!("{}[2J", 27 as char); // Clear the term
             print!("{}", canvas.frame());
             canvas.clear();
         }
 
+        // Keep track
         if let Some(snapshot) = &mut self.snapshot {
             if !snapshot.is_same() {
                 self.unique_iterations += 1;

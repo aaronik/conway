@@ -6,7 +6,7 @@ use drawille::Canvas;
 use std::{thread, time};
 // use termsize;
 
-const RATE: u64 = 20;
+const RATE: u64 = 50;
 
 // TODO
 // * I think Cells needs a second memory space. B/c we might be doing calculation based on a state
@@ -50,17 +50,23 @@ fn main() {
         (midpoint + 5, midpoint + 4),
         (midpoint + 6, midpoint + 4),
         (midpoint + 6, midpoint + 5),
+        (midpoint + 7, midpoint + 4),
+        (midpoint + 8, midpoint + 4),
     ]);
 
     // let snapshot = Snapshot::new();
 
-    let mut game = Game::new(None, size, cells, Some(canvas));
-    // let mut game = Game::new(snapshot, size, cells, None);
+    let mut game = Game::new(None, cells, Some(canvas));
+    // let mut game = Game::new(None, cells, None);
 
     loop {
         thread::sleep(time::Duration::from_millis(RATE));
         game.step();
-        println!("{}", game.unique_iterations);
+
+        // Bail if it's a barren death land
+        if game.cells.num_living_cells() == 0 {
+            std::process::exit(0);
+        }
     }
 }
 
