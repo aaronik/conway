@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 drawille = "0.3.0"
 rand = "0.8.5"
+termsize = "0.1.6"
