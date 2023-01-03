@@ -3,11 +3,11 @@ extern crate drawille;
 use drawille::Canvas;
 use drawille::PixelColor;
 use rand::Rng;
+use std::collections::HashSet;
 use std::{thread, time};
 use termsize;
-use std::collections::HashMap;
 
-const RATE: u64 = 500;
+const RATE: u64 = 100;
 
 // Conway's rules:
 // Births: Each dead cell adjacent to exactly three live neighbors will become live in the next generation.
@@ -22,16 +22,16 @@ fn main() {
 
     let mut canvas = Canvas::new(size, size);
 
-    let mut living_cells: HashMap<String, bool> = HashMap::new();
+    let mut cells = Cells::new();
 
     let midpoint = size / 2;
-    living_cells.insert(format_cell_key(midpoint, midpoint), true);
-    living_cells.insert(format_cell_key(midpoint, midpoint + 1), true);
-    living_cells.insert(format_cell_key(midpoint + 1, midpoint), true);
-    living_cells.insert(format_cell_key(midpoint + 1, midpoint + 1), true);
-    living_cells.insert(format_cell_key(midpoint + 1, midpoint + 2), true);
-    living_cells.insert(format_cell_key(midpoint + 1, midpoint + 3), true);
-    living_cells.insert(format_cell_key(midpoint + 1, midpoint + 4), true);
+    cells.birth(midpoint, midpoint);
+    cells.birth(midpoint, midpoint + 1);
+    cells.birth(midpoint + 1, midpoint);
+    cells.birth(midpoint + 1, midpoint + 1);
+    cells.birth(midpoint + 1, midpoint + 2);
+    cells.birth(midpoint + 1, midpoint + 3);
+    cells.birth(midpoint + 1, midpoint + 4);
 
     loop {
         thread::sleep(time::Duration::from_millis(RATE));
@@ -39,32 +39,28 @@ fn main() {
 
         for i in 1..size {
             for j in 1..size {
-                let key = format_cell_key(i, j);
                 // Perform rules on cell
-                let num_living_neighbors = get_num_living_neighbors(i, j, &living_cells);
+                let num_living_neighbors = cells.num_living_neighbors(i, j);
 
                 // Every living cell with <= 1 neighbor dies
                 if num_living_neighbors <= 1 {
-                    living_cells.remove(&key);
+                    cells.kill(i, j);
                 }
 
                 // Every living cell with >= 4 neighbors dies
                 if num_living_neighbors >= 4 {
-                    living_cells.remove(&key);
+                    cells.kill(i, j);
                 }
 
-                // // Each live cell with 2 or 3 neighbors lives
-                // if living_cells.contains_key(&key) && (num_living_neighbors == 2 || num_living_neighbors == 3) {
-                //     // we stay alive, these checks are not necessary
-                // }
+                // Each live cell with 2 or 3 neighbors lives -- This is a noop for us
 
                 // Every dead cell with 3 neighbors is born
-                if !living_cells.contains_key(&key) && num_living_neighbors == 3 {
-                    living_cells.insert(key.clone(), true);
+                if !cells.is_alive(i, j) && num_living_neighbors == 3 {
+                    cells.birth(i, j);
                 }
 
                 // Draw the cell if it's alive
-                if let Some(_) = living_cells.get(&key) {
+                if cells.is_alive(i, j) {
                     let color = random_color();
                     canvas.set_colored(j, i, color);
                 }
@@ -77,30 +73,48 @@ fn main() {
 }
 
 pub struct Cells {
-    living_cells: HashMap<String, bool>
+    living_cells: HashSet<String>,
 }
 
-fn get_num_living_neighbors(i: u32, j: u32, living_cells: &HashMap<String, bool>) -> u32 {
-    let neighbors = vec![
-        format_cell_key(i - 1, j - 1),
-        format_cell_key(i - 1, j),
-        format_cell_key(i - 1, j + 1),
-        format_cell_key(i, j - 1),
-        format_cell_key(i, j + 1),
-        format_cell_key(i + 1, j - 1),
-        format_cell_key(i + 1, j),
-        format_cell_key(i + 1, j + 1)
-    ];
+impl Cells {
+    pub fn new() -> Cells {
+        Cells { living_cells: HashSet::new() }
+    }
 
-    let mut num_living_neighbors = 0;
+    pub fn birth(&mut self, i: u32, j: u32) {
+        self.living_cells.insert(format_cell_key(i, j));
+    }
 
-    neighbors.iter().for_each(|key| {
-        if let Some(_) = living_cells.get(key) {
-            num_living_neighbors += 1;
-        }
-    });
+    pub fn kill(&mut self, i: u32, j: u32) {
+        self.living_cells.remove(&format_cell_key(i, j));
+    }
 
-    num_living_neighbors
+    pub fn is_alive(&self, i: u32, j: u32) -> bool {
+        self.living_cells.contains(&format_cell_key(i, j))
+    }
+
+    pub fn num_living_neighbors(&self, i: u32, j: u32) -> u32 {
+        let neighbors = vec![
+            format_cell_key(i - 1, j - 1),
+            format_cell_key(i - 1, j),
+            format_cell_key(i - 1, j + 1),
+            format_cell_key(i, j - 1),
+            format_cell_key(i, j + 1),
+            format_cell_key(i + 1, j - 1),
+            format_cell_key(i + 1, j),
+            format_cell_key(i + 1, j + 1),
+        ];
+
+        let mut num_living_neighbors = 0;
+
+        neighbors.iter().for_each(|key| {
+            if self.living_cells.contains(key) {
+                num_living_neighbors += 1;
+            }
+        });
+
+        num_living_neighbors
+    }
 }
 
 fn format_cell_key(i: u32, j: u32) -> String {
