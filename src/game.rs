@@ -4,7 +4,7 @@ use drawille::PixelColor;
 use rand::Rng;
 
 pub struct Game {
-    pub snapshot: Snapshot,
+    pub snapshot: Option<Snapshot>,
     pub canvas: Option<Canvas>,
     pub cells: Cells,
     pub unique_iterations: usize,
@@ -13,10 +13,14 @@ pub struct Game {
 }
 
 impl Game {
-
     /// Implement a new Game object, which orchestrates the conways game of life. Pass in a canvas
     /// and it'll print the game to the screen at every step.
-    pub fn new(snapshot: Snapshot, size: u32, cells: Cells, canvas: Option<Canvas>) -> Game {
+    pub fn new(
+        snapshot: Option<Snapshot>,
+        size: u32,
+        cells: Cells,
+        canvas: Option<Canvas>,
+    ) -> Game {
         Game {
             snapshot,
             canvas,
@@ -57,7 +61,9 @@ impl Game {
 
                 // Draw the cell if it's alive, add to snapshot
                 if self.cells.is_alive(i, j) {
-                    self.snapshot.add(i, j);
+                    if let Some(snapshot) = &mut self.snapshot {
+                        snapshot.add(i, j);
+                    }
 
                     // If there's a canvas, draw on it
                     if let Some(canvas) = &mut self.canvas {
@@ -73,10 +79,12 @@ impl Game {
             canvas.clear();
         }
 
-        if !self.snapshot.is_same() {
-            self.unique_iterations += 1;
+        if let Some(snapshot) = &mut self.snapshot {
+            if !snapshot.is_same() {
+                self.unique_iterations += 1;
+            }
+            snapshot.cycle();
         }
-        self.snapshot.cycle();
     }
 }
 

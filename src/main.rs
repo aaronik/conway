@@ -13,6 +13,9 @@ const RATE: u64 = 0;
 // * I'd really love it for Game to not iterate over every cell every time, instead just looking
 // at the cells it needs to look at.
 //   - Get live cells from Cells
+//   - Get all neighbors, uniquely (loving me some hash sets these days)
+//   - Iterate through those
+// * Snapshot will need to keep a memory of all the different states so it can check for loops
 
 // How to start looking for life:
 // * Fitness function -- bigger unique_iterations X Going to fall into local maxima of loops
@@ -35,7 +38,7 @@ fn main() {
     let mut cells = Cells::new();
 
     // Get some initial configuration
-    let midpoint = size / 2;
+    let midpoint = size / 3;
     cells.birth_multiple(&[
         (midpoint, midpoint),
         (midpoint, midpoint + 1),
@@ -53,7 +56,7 @@ fn main() {
 
     let snapshot = Snapshot::new();
 
-    let mut game = Game::new(snapshot, size, cells, Some(canvas));
+    let mut game = Game::new(None, size, cells, Some(canvas));
     // let mut game = Game::new(snapshot, size, cells, None);
 
     loop {

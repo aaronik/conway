@@ -55,6 +55,8 @@ impl Cells {
     }
 
     // /// Get a list of all the living cells
+    // /// TODO Make this return a HashSet and include all the neighbors, make it
+    // living_cells_and_neighbors
     // pub fn living_cells(&self) -> Vec<(u32, u32)> {
     //     self.living_cells.iter().collect()
     // }
