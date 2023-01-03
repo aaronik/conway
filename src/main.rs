@@ -1,6 +1,6 @@
 extern crate drawille;
 
-use conway::Cells;
+use conway::{Cells, Snapshot};
 use drawille::Canvas;
 use drawille::PixelColor;
 use rand::Rng;
@@ -38,6 +38,9 @@ fn main() {
     cells.birth(midpoint + 1, midpoint + 3);
     cells.birth(midpoint + 1, midpoint + 4);
 
+    let mut unique_iterations = 0;
+    let mut snapshot = Snapshot::new();
+
     loop {
         thread::sleep(time::Duration::from_millis(RATE));
         canvas.clear();
@@ -64,16 +67,22 @@ fn main() {
                     cells.birth(i, j);
                 }
 
-                // Draw the cell if it's alive
+                // Draw the cell if it's alive, add to snapshot
                 if cells.is_alive(i, j) {
-                    let color = random_color();
-                    canvas.set_colored(j, i, color);
+                    snapshot.add(i, j);
+                    canvas.set_colored(j, i, random_color());
                 }
             }
         }
 
         print!("{}[2J", 27 as char); // Clear the term
         print!("{}", canvas.frame());
+        println!("{}", unique_iterations);
+
+        if !snapshot.is_same() {
+            unique_iterations += 1;
+        }
+        snapshot.cycle();
     }
 }
 
