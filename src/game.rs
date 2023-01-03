@@ -37,8 +37,24 @@ impl Game {
     // Survival: Each live cell with either two or three live neighbors will remain alive for the next generation.
 
     pub fn step(&mut self) {
-        for i in 1..self.size {
-            for j in 1..self.size {
+        // Optimization:
+        // Prevent from iterating over every cell on map:
+        //   - Get live cells from Cells
+        //   - Get all neighbors, uniquely (loving me some hash sets these days)
+        //   - Iterate through those
+
+        // TODO Hah Ok the above optimzation worked so profoundly, especially when the grid was
+        // only thinly populated. However, the HashSet returns its list in an unordered way,
+        // and because of the issue I noted in main of updating the grid while analyzing the grid,
+        // we're getting nondeterministic behavior, l0lz. Needa have cells be able to cycle like
+        // snapshot. Then snapshot needs to not do that anymore, hah.
+        self.cells
+            .living_cells_and_neighbors()
+            .iter()
+            .for_each(|coord| {
+                let i = coord.0;
+                let j = coord.1;
+
                 // Perform rules on cell
                 let num_living_neighbors = self.cells.num_living_neighbors(i, j);
 
@@ -70,8 +86,10 @@ impl Game {
                         canvas.set_colored(j, i, random_color());
                     }
                 }
-            }
-        }
+            });
+        // for i in 1..self.size {
+        //     for j in 1..self.size {}
+        // }
 
         if let Some(canvas) = &mut self.canvas {
             print!("{}[2J", 27 as char); // Clear the term

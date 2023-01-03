@@ -3,12 +3,14 @@ use std::collections::HashSet;
 /// An abstraction of binary entries on a 2d grid
 pub struct Cells {
     living_cells: HashSet<(u32, u32)>,
+    size: u32,
 }
 
 impl Cells {
-    pub fn new() -> Cells {
+    pub fn new(size: u32) -> Cells {
         Cells {
             living_cells: HashSet::new(),
+            size,
         }
     }
 
@@ -54,15 +56,33 @@ impl Cells {
         num_living_neighbors
     }
 
-    // /// Get a list of all the living cells
-    // /// TODO Make this return a HashSet and include all the neighbors, make it
-    // living_cells_and_neighbors
-    // pub fn living_cells(&self) -> Vec<(u32, u32)> {
-    //     self.living_cells.iter().collect()
-    // }
+    /// Get a list of all the living cells
+    /// TODO Make this return a HashSet and include all the neighbors, make it
+    pub fn living_cells_and_neighbors(&self) -> HashSet<(u32, u32)> {
+        // Start a new hashset (for uniqueness)
+        let mut res = HashSet::new();
+
+        // Iterate over all our living fellas
+        self.living_cells.iter().for_each(|coord| {
+            // Add the living fella
+            res.insert(*coord);
+
+            // Add all its neighbors
+            self.neighbors(coord.0, coord.1).iter().for_each(|coord| {
+                res.insert(*coord);
+            });
+        });
+
+        res
+    }
 
     /// All the neighbors of a given coord, as tuples
     pub fn neighbors(&self, i: u32, j: u32) -> Vec<(u32, u32)> {
+        // We needa really watch out for the edges here
+        if i < 1 || j < 1 || i >= self.size || j >= self.size {
+            return vec![]
+        }
+
         vec![
             (i - 1, j - 1),
             (i - 1, j),

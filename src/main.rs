@@ -1,11 +1,12 @@
 extern crate drawille;
 
-use conway::{Cells, Snapshot, Game};
+use conway::{Cells, Game};
+// use conway::Snapshot;
 use drawille::Canvas;
 use std::{thread, time};
 // use termsize;
 
-const RATE: u64 = 0;
+const RATE: u64 = 20;
 
 // TODO
 // * I think Cells needs a second memory space. B/c we might be doing calculation based on a state
@@ -35,7 +36,7 @@ fn main() {
     print!("{}", canvas.frame());
     print!("{}", canvas.frame());
 
-    let mut cells = Cells::new();
+    let mut cells = Cells::new(size);
 
     // Get some initial configuration
     let midpoint = size / 3;
@@ -51,7 +52,7 @@ fn main() {
         (midpoint + 6, midpoint + 5),
     ]);
 
-    let snapshot = Snapshot::new();
+    // let snapshot = Snapshot::new();
 
     let mut game = Game::new(None, size, cells, Some(canvas));
     // let mut game = Game::new(snapshot, size, cells, None);
