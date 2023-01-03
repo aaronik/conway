@@ -29,18 +29,20 @@ fn main() {
 
     // Get some initial configuration
     let midpoint = size / 2;
-    cells.birth(midpoint, midpoint);
-    cells.birth(midpoint, midpoint + 1);
-    cells.birth(midpoint + 1, midpoint);
-    cells.birth(midpoint + 1, midpoint + 1);
-    cells.birth(midpoint + 1, midpoint + 2);
-    cells.birth(midpoint + 1, midpoint + 3);
-    cells.birth(midpoint + 1, midpoint + 4);
-    cells.birth(midpoint + 5, midpoint + 4);
-    cells.birth(midpoint + 6, midpoint + 4);
-    cells.birth(midpoint + 6, midpoint + 5);
-    cells.birth(midpoint + 7, midpoint + 4);
-    cells.birth(midpoint + 8, midpoint + 4);
+    cells.birth_multiple(&[
+        (midpoint, midpoint),
+        (midpoint, midpoint + 1),
+        (midpoint + 1, midpoint),
+        (midpoint + 1, midpoint + 1),
+        (midpoint + 1, midpoint + 2),
+        (midpoint + 1, midpoint + 3),
+        (midpoint + 1, midpoint + 4),
+        (midpoint + 5, midpoint + 4),
+        (midpoint + 6, midpoint + 4),
+        (midpoint + 6, midpoint + 5),
+        (midpoint + 7, midpoint + 4),
+        (midpoint + 8, midpoint + 4),
+    ]);
 
     let snapshot = Snapshot::new();
 

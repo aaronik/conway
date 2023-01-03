@@ -13,6 +13,12 @@ impl Cells {
         self.living_cells.insert(format_cell_key(i, j));
     }
 
+    pub fn birth_multiple(&mut self, coords: &[(u32, u32)]) {
+        coords.iter().for_each(|coord| {
+            self.living_cells.insert(format_cell_key(coord.0, coord.1));
+        })
+    }
+
     pub fn kill(&mut self, i: u32, j: u32) {
         self.living_cells.remove(&format_cell_key(i, j));
     }
