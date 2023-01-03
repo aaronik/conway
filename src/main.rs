@@ -41,7 +41,6 @@ fn main() {
     let midpoint = size / 3;
     cells.birth_multiple(&[
         (midpoint, midpoint),
-        (midpoint, midpoint + 1),
         (midpoint + 1, midpoint),
         (midpoint + 1, midpoint + 1),
         (midpoint + 1, midpoint + 2),
@@ -50,8 +49,6 @@ fn main() {
         (midpoint + 5, midpoint + 4),
         (midpoint + 6, midpoint + 4),
         (midpoint + 6, midpoint + 5),
-        (midpoint + 7, midpoint + 4),
-        (midpoint + 8, midpoint + 4),
     ]);
 
     let snapshot = Snapshot::new();
