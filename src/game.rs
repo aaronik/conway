@@ -1,7 +1,7 @@
 use super::{Cells, Snapshot};
 use drawille::Canvas;
 use drawille::PixelColor;
-use rand::Rng;
+// use rand::Rng;
 
 pub struct Game {
     pub snapshot: Option<Snapshot>,
@@ -72,7 +72,10 @@ impl Game {
 
                     // If there's a canvas, draw on it
                     if let Some(canvas) = &mut self.canvas {
-                        canvas.set_colored(j, i, random_color());
+                        // Note this won't be perfect because the term can only make a unique color
+                        // per character, and the brail characters come out multiple in one
+                        // character slot
+                        canvas.set_colored(j, i, color_by_age(self.cells.get_age(i, j)));
                     }
                 }
             });
@@ -96,20 +99,20 @@ impl Game {
     }
 }
 
-fn random_color() -> PixelColor {
-    let rnum = rand::thread_rng().gen_range(1..=11);
-    match rnum {
-        1 => PixelColor::Blue,
-        2 => PixelColor::Cyan,
-        3 => PixelColor::BrightBlack,
-        4 => PixelColor::Green,
-        5 => PixelColor::BrightGreen,
-        6 => PixelColor::Yellow,
-        7 => PixelColor::Magenta,
-        8 => PixelColor::BrightRed,
-        9 => PixelColor::BrightYellow,
-        10 => PixelColor::BrightBlue,
-        11 => PixelColor::BrightCyan,
-        _ => PixelColor::Cyan,
+fn color_by_age(age: usize) -> PixelColor {
+    match age {
+        1 => PixelColor::BrightBlack,
+        2 => PixelColor::Blue,
+        3 => PixelColor::BrightBlue,
+        4 => PixelColor::Magenta,
+        5 => PixelColor::BrightMagenta,
+        6 => PixelColor::Cyan,
+        7 => PixelColor::BrightCyan,
+        8 => PixelColor::Green,
+        9 => PixelColor::BrightGreen,
+        10 => PixelColor::Yellow,
+        11 => PixelColor::BrightYellow,
+        12 => PixelColor::Red,
+        _ => PixelColor::BrightRed,
     }
 }
