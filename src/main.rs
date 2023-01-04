@@ -53,7 +53,7 @@ fn main() {
     // let mut game = Game::new(None, cells, None);
 
     loop {
-        thread::sleep(time::Duration::from_millis(150));
+        thread::sleep(time::Duration::from_millis(10));
         game.step();
 
         // Bail if it's a barren death land

@@ -53,7 +53,7 @@ use std::collections::{BTreeSet, HashSet};
 pub struct Snapshot {
     grids_vec: Vec<String>,
     grids_set: HashSet<String>,
-    cells: BTreeSet<u32>,
+    current_iteration_cells: BTreeSet<u32>,
     size: u32,
     has_repeat: bool,
 }
@@ -63,7 +63,7 @@ impl Snapshot {
         Snapshot {
             grids_vec: Vec::new(),
             grids_set: HashSet::new(),
-            cells: BTreeSet::new(),
+            current_iteration_cells: BTreeSet::new(),
             size,
             has_repeat: false,
         }
@@ -71,7 +71,7 @@ impl Snapshot {
 
     pub fn add_cell(&mut self, i: u32, j: u32) {
         let cell_number = self.size * i + j;
-        self.cells.insert(cell_number);
+        self.current_iteration_cells.insert(cell_number);
     }
 
     /// Is the current build up snapshot the same as the previous one, the one that most recently
@@ -83,13 +83,23 @@ impl Snapshot {
     // If has_repeat is true, this will return how long the repeat period is
     pub fn period(&self) -> usize {
         if !self.has_repeat {
-            panic!("snapshot.period called with snapshot.has_repeat is false. Wait till true to call!");
+            panic!(
+                "snapshot.period called with snapshot.has_repeat is false. Wait till true to call!"
+            );
         };
 
-        let most_recent = self.grids_vec.first().unwrap();
-        self.grids_vec.iter().enumerate().position(|(index, grid)| {
-            grid == most_recent
-        }).unwrap() + 2 // TODO Remove this + 2, bring back that index != 0
+        // TODO Won't necessarily be the first.
+        // * Adds an existing state
+        // * hits commit and sets has_repeat to true
+        // * Adds another state
+        let most_recent = self.grids_vec.last().unwrap();
+
+        self.grids_vec
+            .iter()
+            .rev()
+            .enumerate()
+            .position(|(index, grid)| index != 0 && grid == most_recent)
+            .expect(&format!("snapshot says it has a repeat but blew up getting the period, {:#?}", self.grids_vec))
     }
 
     /// Commit the cells that were added to memory as a single grid state.
@@ -97,19 +107,19 @@ impl Snapshot {
         let serialized = self.serialize_cells();
         self.grids_vec.push(serialized.clone()); // TODO It'd be way better if it lived in
                                                  // grids_set and was referenced in here
-        // TODO Ok we're getting false values here. It's showing a repeat when there is no
-        // repeat.
         let has_repeat = !self.grids_set.insert(serialized);
 
         if has_repeat {
             self.has_repeat = true;
         }
+
+        self.current_iteration_cells.clear();
     }
 
     fn serialize_cells(&self) -> String {
         let mut serialized = String::from("");
 
-        self.cells.iter().for_each(|cell| {
+        self.current_iteration_cells.iter().for_each(|cell| {
             serialized += &cell.to_string();
             serialized += "|";
         });
