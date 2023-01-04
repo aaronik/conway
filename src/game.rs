@@ -95,6 +95,8 @@ impl Game {
 
             if snapshot.has_repeat() {
                 println!("snapshot has repeat of period {}", snapshot.period());
+            } else {
+                println!("");
             }
         }
 

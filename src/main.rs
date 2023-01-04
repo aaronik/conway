@@ -7,7 +7,11 @@ use std::{thread, time};
 // use termsize;
 
 // TODO
-// * Snapshot will need to keep a memory of all the different states so it can check for loops
+// * Once there are interesting patterns found, I want to :
+//   - store them (sqllite: https://stackoverflow.com/questions/62560396/how-to-use-sqlite-via-rusqlite-from-multiple-threads)
+//   - Replay them (So if I could store each as a list of cells, either one table for grid/one for
+//   cells, or just one for grid which has a datatype of a collection of tuples somehow.)
+//   - grid: id,size
 
 // How to start looking for life:
 // * Fitness function -- bigger unique_iterations X Going to fall into local maxima of loops
@@ -15,12 +19,13 @@ use std::{thread, time};
 //                       state.
 //                    -- I like loops, loops with high period are the best.
 // * Mate -- A meme is a contiguous group, or a localized grouping with a small amount of space
+//        -- Or, could make a meme a grid breakdown of the board, like quadrants
 // * Mutations are memes placed nearby or randomly, or just random squares in the beginning
 
 fn main() {
     // let termsize::Size { rows, cols } = termsize::get().unwrap();
     // let size: u32 = std::cmp::min(rows, cols) as u32;
-    let size: u32 = 50;
+    let size: u32 = 150;
 
     let canvas = Canvas::new(size, size);
 
@@ -53,11 +58,12 @@ fn main() {
     // let mut game = Game::new(None, cells, None);
 
     loop {
-        thread::sleep(time::Duration::from_millis(10));
+        thread::sleep(time::Duration::from_millis(50));
         game.step();
 
         // Bail if it's a barren death land
         if game.cells.num_living_cells() == 0 {
+            println!("Game has no more life");
             std::process::exit(0);
         }
     }
