@@ -67,7 +67,7 @@ impl Game {
                 // This'll be behind by one iteration
                 if self.cells.is_alive(i, j) {
                     if let Some(snapshot) = &mut self.snapshot {
-                        snapshot.add(i, j);
+                        snapshot.add_cell(i, j);
                     }
 
                     // If there's a canvas, draw on it
@@ -91,11 +91,13 @@ impl Game {
 
         // Keep track
         if let Some(snapshot) = &mut self.snapshot {
-            if !snapshot.is_same() {
-                self.unique_iterations += 1;
+            snapshot.commit_cells();
+
+            if snapshot.has_repeat() {
+                println!("snapshot has repeat of period {}", snapshot.period());
             }
-            snapshot.cycle();
         }
+
     }
 }
 

@@ -43,13 +43,13 @@ fn main() {
         (midpoint + 6, midpoint + 4),
         (midpoint + 6, midpoint + 5),
         (midpoint + 7, midpoint + 4),
-        // (midpoint + 8, midpoint + 4),
-        // (midpoint + 0, midpoint + 4),
+        (midpoint + 8, midpoint + 4),
+        (midpoint + 0, midpoint + 4),
     ]);
 
-    // let snapshot = Snapshot::new();
+    let snapshot = conway::Snapshot::new(size);
 
-    let mut game = Game::new(None, cells, Some(canvas));
+    let mut game = Game::new(Some(snapshot), cells, Some(canvas));
     // let mut game = Game::new(None, cells, None);
 
     loop {
