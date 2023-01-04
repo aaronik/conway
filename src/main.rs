@@ -35,6 +35,7 @@ fn main() {
 
     Db::initialize(pool.get().unwrap());
 
+    // TODO Ultimately we'll have one of these in each thread, after cloning the pool
     let mut db = Db::new(pool.get().unwrap());
 
     // (0..10)
@@ -64,26 +65,26 @@ fn main() {
 
     let mut cells = Cells::new(size);
 
-    // Get some initial configuration
-    let midpoint = size / 3;
-    let initial_cells = vec![
-        (midpoint, midpoint),
-        (midpoint + 1, midpoint),
-        (midpoint + 1, midpoint + 1),
-        (midpoint + 1, midpoint + 2),
-        (midpoint + 1, midpoint + 3),
-        (midpoint + 1, midpoint + 4),
-        (midpoint + 5, midpoint + 4),
-        (midpoint + 6, midpoint + 4),
-        (midpoint + 6, midpoint + 5),
-        (midpoint + 7, midpoint + 4),
-        (midpoint + 8, midpoint + 4),
-        (midpoint + 0, midpoint + 4),
-    ];
+    // // Get some initial configuration
+    // let midpoint = size / 3;
+    // let initial_cells = vec![
+    //     (midpoint, midpoint),
+    //     (midpoint + 1, midpoint),
+    //     (midpoint + 1, midpoint + 1),
+    //     (midpoint + 1, midpoint + 2),
+    //     (midpoint + 1, midpoint + 3),
+    //     (midpoint + 1, midpoint + 4),
+    //     (midpoint + 5, midpoint + 4),
+    //     (midpoint + 6, midpoint + 4),
+    //     (midpoint + 6, midpoint + 5),
+    //     (midpoint + 7, midpoint + 4),
+    //     (midpoint + 8, midpoint + 4),
+    //     (midpoint + 0, midpoint + 4),
+    // ];
 
-    db.save_board(size, &initial_cells).unwrap();
+    let initial_board = db.load_board(1).unwrap();
 
-    cells.birth_multiple(&initial_cells);
+    cells.birth_multiple(&initial_board.1);
 
     let snapshot = conway::Snapshot::new(size);
 

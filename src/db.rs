@@ -6,9 +6,6 @@ pub struct Db {
     connection: PooledConnection<SqliteConnectionManager>,
 }
 
-// Get all the boards
-// SELECT board_id,size,i,j FROM Boards INNER JOIN Cells ON Boards.id = Cells.board_id;
-
 impl Db {
     pub fn new(connection: PooledConnection<SqliteConnectionManager>) -> Self {
         Self { connection }
@@ -41,7 +38,8 @@ impl Db {
     /// Takes a number of cells and a board size and saves that board to the db
     pub fn save_board(&mut self, size: u32, cells: &Vec<(u32, u32)>) -> Result<(), Error> {
         // Insert one new board
-        self.connection.execute("INSERT INTO Boards (size) VALUES (?)", params![size])?;
+        self.connection
+            .execute("INSERT INTO Boards (size) VALUES (?)", params![size])?;
 
         // What was that last id?
         let board_id = self.connection.last_insert_rowid();
@@ -56,5 +54,25 @@ impl Db {
         tx.commit()?;
 
         Ok(())
+    }
+
+    pub fn load_board(&self, board_id: usize) -> Result<(u32, Vec<(u32, u32)>), Error> {
+        let size: u32 = self.connection.query_row("SELECT size FROM Boards WHERE id = ?", params![board_id], |row| row.get(0))?;
+
+        let mut stmt = self.connection.prepare(
+            "SELECT i,j FROM Boards INNER JOIN Cells ON Boards.id = Cells.board_id WHERE Boards.id = ?",
+        )?;
+        let cells_iter = stmt.query_map(params![board_id], |row| {
+            Ok((row.get(0)?, row.get(1)?))
+        })?;
+
+        let mut cells_vec: Vec<(u32, u32)> = vec![];
+
+        for cell in cells_iter {
+            let cell = cell.expect("Error in loading board");
+            cells_vec.push((cell.0, cell.1))
+        }
+
+        Ok((size, cells_vec))
     }
 }
