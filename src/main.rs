@@ -1,10 +1,15 @@
 extern crate drawille;
 
-use conway::{Cells, Game};
-// use conway::Snapshot;
+use conway::{Cells, Game, Db};
 use drawille::Canvas;
 use std::{thread, time};
 // use termsize;
+
+extern crate r2d2;
+extern crate r2d2_sqlite;
+extern crate rusqlite;
+
+use r2d2_sqlite::SqliteConnectionManager;
 
 // TODO
 // * Once there are interesting patterns found, I want to :
@@ -20,9 +25,33 @@ use std::{thread, time};
 //                    -- I like loops, loops with high period are the best.
 // * Mate -- A meme is a contiguous group, or a localized grouping with a small amount of space
 //        -- Or, could make a meme a grid breakdown of the board, like quadrants
+//
 // * Mutations are memes placed nearby or randomly, or just random squares in the beginning
 
 fn main() {
+    let manager = SqliteConnectionManager::file("database.db");
+    let pool = r2d2::Pool::new(manager).unwrap();
+    // pool.clone() for each thread
+
+    Db::initialize(pool.get().unwrap());
+
+    let mut db = Db::new(pool.get().unwrap());
+
+    // (0..10)
+    //     .map(|i| {
+    //         let pool = pool.clone();
+    //         thread::spawn(move || {
+    //             let conn = pool.get().unwrap();
+    //             conn.execute("INSERT INTO foo (bar) VALUES (?)", &[&i])
+    //                 .unwrap();
+    //         })
+    //     })
+    //     .collect::<Vec<_>>()
+    //     .into_iter()
+    //     .map(thread::JoinHandle::join)
+    //     .collect::<Result<_, _>>()
+    //     .unwrap();
+
     // let termsize::Size { rows, cols } = termsize::get().unwrap();
     // let size: u32 = std::cmp::min(rows, cols) as u32;
     let size: u32 = 150;
@@ -37,7 +66,7 @@ fn main() {
 
     // Get some initial configuration
     let midpoint = size / 3;
-    cells.birth_multiple(&[
+    let initial_cells = vec![
         (midpoint, midpoint),
         (midpoint + 1, midpoint),
         (midpoint + 1, midpoint + 1),
@@ -50,7 +79,11 @@ fn main() {
         (midpoint + 7, midpoint + 4),
         (midpoint + 8, midpoint + 4),
         (midpoint + 0, midpoint + 4),
-    ]);
+    ];
+
+    db.save_board(size, &initial_cells).unwrap();
+
+    cells.birth_multiple(&initial_cells);
 
     let snapshot = conway::Snapshot::new(size);
 
@@ -68,4 +101,3 @@ fn main() {
         }
     }
 }
-

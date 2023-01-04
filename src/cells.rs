@@ -31,8 +31,7 @@ impl Cells {
     /// This assumes this is used just for initial set up, so all ages are set to 1.
     pub fn birth_multiple(&mut self, coords: &[(u32, u32)]) {
         coords.iter().for_each(|coord| {
-            self.uncommitted_cells
-                .insert((coord.0, coord.1), 1);
+            self.uncommitted_cells.insert((coord.0, coord.1), 1);
         })
     }
 
@@ -71,7 +70,14 @@ impl Cells {
         num_living_neighbors
     }
 
-    /// Get a list of all the living cells
+    /// Get a list of just the living cells
+    pub fn living_cells(&self) -> Vec<(u32, u32)> {
+        // TODO Is it dangerous to give away dereferenced locations like this?
+        // Whoever gets it, if they modify it, aren't they changing our data?
+        self.extent_cells.keys().map(|key| *key).collect()
+    }
+
+    /// Get a list of all the living cells and their neighbors, living or not
     pub fn living_cells_and_neighbors(&self) -> HashSet<(u32, u32)> {
         // Start a new hashset (for uniqueness)
         let mut res = HashSet::new();
@@ -94,7 +100,7 @@ impl Cells {
     pub fn neighbors(&self, i: u32, j: u32) -> Vec<(u32, u32)> {
         // We needa really watch out for the edges here
         if i < 1 || j < 1 || i >= self.size || j >= self.size {
-            return vec![]
+            return vec![];
         }
 
         vec![
@@ -127,4 +133,3 @@ impl Cells {
         });
     }
 }
-
