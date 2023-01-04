@@ -92,12 +92,6 @@ impl Game {
         // Keep track
         if let Some(snapshot) = &mut self.snapshot {
             snapshot.commit_cells();
-
-            if snapshot.has_repeat() {
-                println!("snapshot has repeat of period {}", snapshot.period());
-            } else {
-                println!("");
-            }
         }
 
     }

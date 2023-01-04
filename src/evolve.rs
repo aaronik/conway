@@ -3,7 +3,7 @@ pub struct Evolution {
 }
 
 impl Evolution {
-    pub fn new() -> Self {
-        Self { db: todo!() }
+    pub fn new(db: Option<crate::Db>) -> Self {
+        Self { db }
     }
 }

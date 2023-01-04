@@ -1,7 +1,8 @@
 extern crate drawille;
 
-use conway::{Cells, Game, Db};
+use conway::{Cells, Db, Game};
 use drawille::Canvas;
+use rand::Rng;
 use std::{thread, time};
 // use termsize;
 
@@ -36,7 +37,7 @@ fn main() {
     Db::initialize(pool.get().unwrap());
 
     // TODO Ultimately we'll have one of these in each thread, after cloning the pool
-    let mut db = Db::new(pool.get().unwrap());
+    let db = Db::new(pool.get().unwrap());
 
     // (0..10)
     //     .map(|i| {
@@ -86,19 +87,65 @@ fn main() {
 
     cells.birth_multiple(&initial_board.1);
 
-    let snapshot = conway::Snapshot::new(size);
-
-    let mut game = Game::new(Some(snapshot), cells, Some(canvas));
+    // let mut game = Game::new(Some(conway::Snapshot::new(size)), cells, Some(canvas));
+    // let mut game = Game::new(None, cells, Some(canvas));
     // let mut game = Game::new(None, cells, None);
 
-    loop {
-        thread::sleep(time::Duration::from_millis(50));
-        game.step();
+    // // OG Game loop
+    // loop {
+    //     thread::sleep(time::Duration::from_millis(50));
+    //     game.step();
 
-        // Bail if it's a barren death land
-        if game.cells.num_living_cells() == 0 {
-            println!("Game has no more life");
-            std::process::exit(0);
+    //     // Bail if it's a barren death land
+    //     if game.cells.num_living_cells() == 0 {
+    //         println!("Game has no more life");
+    //         std::process::exit(0);
+    //     }
+
+    //     // Demo snapshot abilities
+    //     if let Some(snapshot) = &game.snapshot {
+    //         if snapshot.has_repeat() {
+    //             println!("snapshot has repeat of period {}", snapshot.period());
+    //         } else {
+    //             println!("");
+    //         }
+    //     }
+    // }
+
+    // Playing with evolving
+    loop {
+        let mut cells = Cells::new(size);
+        cells.birth_multiple(&random_cells(size, 1000));
+
+        let canvas = Canvas::new(size, size);
+        let mut game = Game::new(Some(conway::Snapshot::new(size)), cells, Some(canvas));
+
+        loop {
+            thread::sleep(time::Duration::from_millis(20));
+            game.step();
+
+            // Bail if it's a barren death land
+            if game.cells.num_living_cells() == 0 {
+                break;
+            }
+
+            if let Some(snapshot) = &game.snapshot {
+                if snapshot.has_repeat() {
+                    break;
+                }
+            }
         }
     }
+}
+
+fn random_cells(size: u32, num: u32) -> Vec<(u32, u32)> {
+    let mut cells = vec![];
+
+    for _ in 0..num {
+        let rand_i = rand::thread_rng().gen_range(0..size);
+        let rand_j = rand::thread_rng().gen_range(0..size);
+        cells.push((rand_i, rand_j));
+    }
+
+    cells
 }
