@@ -3,7 +3,7 @@ extern crate drawille;
 use conway::{Board, Cells, Db, Evolution, Game};
 use drawille::Canvas;
 use rand::Rng;
-use std::{thread, time};
+// use std::{thread, time};
 // use termsize;
 
 extern crate r2d2;
@@ -118,7 +118,8 @@ fn main() {
         // * Mate the top boards, with mutation
         // * Cull the bottom
         let mut cells = Cells::new(size);
-        let initial_cells = random_cells(size, 100);
+        let num_cells = rand::thread_rng().gen_range(1..=200);
+        let initial_cells = random_cells(size, num_cells);
         cells.birth_multiple(&initial_cells);
 
         let canvas = Canvas::new(size, size);
@@ -150,7 +151,7 @@ fn main() {
             }
         }
 
-        let board = Board {
+        let new_board = Board {
             id: None,
             size,
             cells: initial_cells,
@@ -158,15 +159,23 @@ fn main() {
             period: game.snapshot.unwrap().period(),
         };
 
-        // Add boards to the list
-        db.save_board(&board).expect("error saving board");
-
         // * Remove weakest board (fitness)
-        let mut boards = db.load_boards().unwrap();
-        if boards.len() == 10 { // TODO use var instead of raw 10
-            boards.sort_by_key(|board| 0 - Evolution::measure_fitness(board));
-            let removed = boards.pop().unwrap();
-            db.delete_board(removed.id.unwrap()).unwrap();
+        // TODO This would be safest in a single DB call.
+        // It'd be easy if we're only checking for one parameter,
+        // but I think we can do a whole fitness function in SQL
+        let boards = db.load_boards().unwrap();
+        if boards.len() < 10 { // TODO use var instead of raw 10
+            // Add boards to the list
+            db.save_board(&new_board).expect("error saving board");
+        } else {
+            // Check our board against all the rest
+            // If we're not the weakest, delete that and add ours
+            for board in boards {
+                if Evolution::measure_fitness(&new_board) > Evolution::measure_fitness(&board) {
+                    db.delete_board(board.id.unwrap()).unwrap();
+                    db.save_board(&board).unwrap();
+                }
+            }
         }
     }
 }
