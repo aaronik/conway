@@ -1,6 +1,6 @@
 extern crate drawille;
 
-use conway::{Cells, Db, Game, Board, Evolution};
+use conway::{Board, Cells, Db, Evolution, Game};
 use drawille::Canvas;
 use rand::Rng;
 use std::{thread, time};
@@ -127,20 +127,24 @@ fn main() {
 
         // Iterate a single board
         loop {
-            thread::sleep(time::Duration::from_millis(1));
+            // thread::sleep(time::Duration::from_millis(1));
             game.step();
 
             // Bail if it's a barren death land
             if game.cells.num_living_cells() == 0 {
                 println!("died after {} iterations", game.iterations);
-                thread::sleep(time::Duration::from_millis(3000));
+                // thread::sleep(time::Duration::from_millis(3000));
                 break;
             }
 
             if let Some(snapshot) = &game.snapshot {
                 if snapshot.has_repeat() {
-                    println!("period {} after {} iterations", snapshot.period().unwrap(), game.iterations);
-                    thread::sleep(time::Duration::from_millis(3000));
+                    println!(
+                        "period {} after {} iterations",
+                        snapshot.period().unwrap(),
+                        game.iterations
+                    );
+                    // thread::sleep(time::Duration::from_millis(3000));
                     break;
                 }
             }
@@ -158,7 +162,12 @@ fn main() {
         db.save_board(&board).expect("error saving board");
 
         // * Remove weakest board (fitness)
-        // Evolution::measure_fitness()
+        let mut boards = db.load_boards().unwrap();
+        if boards.len() == 10 { // TODO use var instead of raw 10
+            boards.sort_by_key(|board| 0 - Evolution::measure_fitness(board));
+            let removed = boards.pop().unwrap();
+            db.delete_board(removed.id.unwrap()).unwrap();
+        }
     }
 }
 
@@ -166,7 +175,7 @@ fn random_cells(size: u32, num: u32) -> Vec<(u32, u32)> {
     let mut cells = vec![];
 
     for _ in 0..num {
-        let range_i = (size*2) / 5..(size * 3) / 5;
+        let range_i = (size * 2) / 5..(size * 3) / 5;
         let range_j = range_i.clone();
         let rand_i = rand::thread_rng().gen_range(range_i);
         let rand_j = rand::thread_rng().gen_range(range_j);

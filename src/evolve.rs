@@ -11,10 +11,10 @@ impl Evolution {
 
     /// this fitness function weighs period much heavier than iterations,
     /// because that's what I think it should be.
-    pub fn measure_fitness(board: Board) -> usize {
+    pub fn measure_fitness(board: &Board) -> isize {
         match board.period {
-            Some(period) => period * 3 + board.iterations,
-            None => board.iterations
+            Some(period) => (period * 3 + board.iterations) as isize,
+            None => board.iterations as isize
         }
     }
 }

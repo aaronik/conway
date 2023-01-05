@@ -49,7 +49,7 @@ impl Db {
     }
 
     pub fn load_board(&self, board_id: i64) -> Result<Board, Error> {
-        let (id, size, cells_str, iterations, period): (u32, u32, String, usize, usize) =
+        let (id, size, cells_str, iterations, period): (i64, u32, String, usize, usize) =
             self.connection.query_row(
                 "SELECT id, size, cells, iterations, period FROM Boards WHERE id = ?",
                 params![board_id],
@@ -98,6 +98,15 @@ impl Db {
         }
 
         Ok(boards)
+    }
+
+    pub fn delete_board(&mut self, board_id: i64) -> Result<(), Error> {
+        self.connection.execute(
+            "DELETE FROM Boards WHERE id = ?",
+            params![board_id],
+        )?;
+
+        Ok(())
     }
 
     fn serialize_cells(cells: &Vec<(u32, u32)>) -> String {
