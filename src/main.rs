@@ -1,6 +1,6 @@
 extern crate drawille;
 
-use conway::{Cells, Db, Game};
+use conway::{Cells, Db, Game, Board, Evolution};
 use drawille::Canvas;
 use rand::Rng;
 use std::{thread, time};
@@ -18,6 +18,7 @@ use r2d2_sqlite::SqliteConnectionManager;
 //   - Replay them (So if I could store each as a list of cells, either one table for grid/one for
 //   cells, or just one for grid which has a datatype of a collection of tuples somehow.)
 //   - grid: id,size
+// * Wrap the grid
 
 // How to start looking for life:
 // * Fitness function -- bigger unique_iterations X Going to fall into local maxima of loops
@@ -37,7 +38,7 @@ fn main() {
     Db::initialize(pool.get().unwrap());
 
     // TODO Ultimately we'll have one of these in each thread, after cloning the pool
-    let db = Db::new(pool.get().unwrap());
+    let mut db = Db::new(pool.get().unwrap());
 
     // (0..10)
     //     .map(|i| {
@@ -64,7 +65,7 @@ fn main() {
     print!("{}", canvas.frame());
     print!("{}", canvas.frame());
 
-    let mut cells = Cells::new(size);
+    // let mut cells = Cells::new(size);
 
     // // Get some initial configuration
     // let midpoint = size / 3;
@@ -83,9 +84,7 @@ fn main() {
     //     (midpoint + 0, midpoint + 4),
     // ];
 
-    let initial_board = db.load_board(1).unwrap();
-
-    cells.birth_multiple(&initial_board.1);
+    // cells.birth_multiple(&initial_board.1);
 
     // let mut game = Game::new(Some(conway::Snapshot::new(size)), cells, Some(canvas));
     // let mut game = Game::new(None, cells, Some(canvas));
@@ -112,29 +111,53 @@ fn main() {
     //     }
     // }
 
-    // Playing with evolving
+    // Create a new board
     loop {
+        // If this were real evolution, to generate these boards, we'd:
+        // * Wait until we have a full list of boards
+        // * Mate the top boards, with mutation
+        // * Cull the bottom
         let mut cells = Cells::new(size);
-        cells.birth_multiple(&random_cells(size, 1000));
+        let initial_cells = random_cells(size, 100);
+        cells.birth_multiple(&initial_cells);
 
         let canvas = Canvas::new(size, size);
-        let mut game = Game::new(Some(conway::Snapshot::new(size)), cells, Some(canvas));
+        let snapshot = conway::Snapshot::new(size);
+        let mut game = Game::new(Some(snapshot), cells, Some(canvas));
 
+        // Iterate a single board
         loop {
-            thread::sleep(time::Duration::from_millis(20));
+            thread::sleep(time::Duration::from_millis(1));
             game.step();
 
             // Bail if it's a barren death land
             if game.cells.num_living_cells() == 0 {
+                println!("died after {} iterations", game.iterations);
+                thread::sleep(time::Duration::from_millis(3000));
                 break;
             }
 
             if let Some(snapshot) = &game.snapshot {
                 if snapshot.has_repeat() {
+                    println!("period {} after {} iterations", snapshot.period().unwrap(), game.iterations);
+                    thread::sleep(time::Duration::from_millis(3000));
                     break;
                 }
             }
         }
+
+        let board = Board {
+            size,
+            cells: initial_cells,
+            iterations: game.iterations,
+            period: game.snapshot.unwrap().period(),
+        };
+
+        // Add boards to the list
+        db.save_board(&board).expect("error saving board");
+
+        // * Remove weakest board (fitness)
+        // Evolution::measure_fitness()
     }
 }
 
@@ -142,8 +165,10 @@ fn random_cells(size: u32, num: u32) -> Vec<(u32, u32)> {
     let mut cells = vec![];
 
     for _ in 0..num {
-        let rand_i = rand::thread_rng().gen_range(0..size);
-        let rand_j = rand::thread_rng().gen_range(0..size);
+        let range_i = (size*2) / 5..(size * 3) / 5;
+        let range_j = range_i.clone();
+        let rand_i = rand::thread_rng().gen_range(range_i);
+        let rand_j = rand::thread_rng().gen_range(range_j);
         cells.push((rand_i, rand_j));
     }
 

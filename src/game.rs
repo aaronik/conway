@@ -7,7 +7,7 @@ pub struct Game {
     pub snapshot: Option<Snapshot>,
     pub canvas: Option<Canvas>,
     pub cells: Cells,
-    pub unique_iterations: usize,
+    pub iterations: usize,
 }
 
 impl Game {
@@ -22,7 +22,7 @@ impl Game {
             snapshot,
             canvas,
             cells,
-            unique_iterations: 0,
+            iterations: 0,
         }
     }
 
@@ -82,10 +82,12 @@ impl Game {
 
         self.cells.commit();
 
+        self.iterations += 1;
+
         // Draw
         if let Some(canvas) = &mut self.canvas {
             print!("{}[2J", 27 as char); // Clear the term
-            print!("{}", canvas.frame());
+            println!("{}\n", canvas.frame()); // \n helps prevent _some_ jitteriness
             canvas.clear();
         }
 

@@ -96,22 +96,33 @@ impl Cells {
         res
     }
 
-    /// All the neighbors of a given coord, as tuples
+    /// All the neighbors of a given coord, as tuples, wrapped around the size of the board
     pub fn neighbors(&self, i: u32, j: u32) -> Vec<(u32, u32)> {
-        // We needa really watch out for the edges here
-        if i < 1 || j < 1 || i >= self.size || j >= self.size {
-            return vec![];
-        }
+        let plus = |n: u32| -> u32 {
+            if n == self.size {
+                0
+            } else {
+                n + 1
+            }
+        };
+
+        let minus = |n: u32| -> u32 {
+            if n == 0 {
+                self.size
+            } else {
+                n - 1
+            }
+        };
 
         vec![
-            (i - 1, j - 1),
-            (i - 1, j),
-            (i - 1, j + 1),
-            (i, j - 1),
-            (i, j + 1),
-            (i + 1, j - 1),
-            (i + 1, j),
-            (i + 1, j + 1),
+            (minus(i), minus(j)),
+            (minus(i), j),
+            (minus(i), plus(j)),
+            (i, minus(j)),
+            (i, plus(j)),
+            (plus(i), minus(j)),
+            (plus(i), j),
+            (plus(i), plus(j)),
         ]
     }
 

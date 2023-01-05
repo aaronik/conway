@@ -81,11 +81,9 @@ impl Snapshot {
     }
 
     // If has_repeat is true, this will return how long the repeat period is
-    pub fn period(&self) -> usize {
+    pub fn period(&self) -> Option<usize> {
         if !self.has_repeat {
-            panic!(
-                "snapshot.period called with snapshot.has_repeat is false. Wait till true to call!"
-            );
+            return None;
         };
 
         // TODO Won't necessarily be the first.
@@ -94,12 +92,14 @@ impl Snapshot {
         // * Adds another state
         let most_recent = self.grids_vec.last().unwrap();
 
-        self.grids_vec
+        let period = self.grids_vec
             .iter()
             .rev()
             .enumerate()
             .position(|(index, grid)| index != 0 && grid == most_recent)
-            .expect(&format!("snapshot says it has a repeat but blew up getting the period, {:#?}", self.grids_vec))
+            .expect(&format!("snapshot says it has a repeat but blew up getting the period, {:#?}", self.grids_vec));
+
+        Some(period)
     }
 
     /// Commit the cells that were added to memory as a single grid state.
