@@ -147,6 +147,7 @@ fn main() {
         }
 
         let board = Board {
+            id: None,
             size,
             cells: initial_cells,
             iterations: game.iterations,

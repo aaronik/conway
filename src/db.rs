@@ -21,20 +21,12 @@ impl Db {
             id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
             size INTEGER NOT NULL,
             period INTEGER,
-            iterations INTEGER
+            iterations INTEGER,
+            cells TEXT NOT NULL
             );
         ";
 
-        let create_cells = "
-        CREATE TABLE IF NOT EXISTS Cells (
-            id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-            board_id INTEGER NOT NULL,
-            i INTEGER NOT NULL,
-            j INTEGER NOT NULL
-            );
-        ";
-
-        [create_boards, create_cells].map(|query| {
+        [create_boards].map(|query| {
             connection.execute(query, params![]).unwrap();
         });
     }
@@ -42,71 +34,106 @@ impl Db {
     /// Takes a number of cells and a board size and saves that board to the db
     /// Returns Result<board_id>
     pub fn save_board(&mut self, board: &Board) -> Result<i64, Error> {
+        let cells = Db::serialize_cells(&board.cells);
+
         // Insert one new board
         self.connection.execute(
-            "INSERT INTO Boards (size, period, iterations) VALUES (?, ?, ?)",
-            params![board.size, board.period, board.iterations],
+            "INSERT INTO Boards (size, cells, period, iterations) VALUES (?, ?, ?, ?)",
+            params![board.size, cells, board.period, board.iterations],
         )?;
 
         // What was that last id?
         let board_id = self.connection.last_insert_rowid();
 
-        let tx = self.connection.transaction()?;
-        for (i, j) in board.cells.iter() {
-            tx.execute(
-                "INSERT INTO Cells (board_id, i, j) VALUES (?, ?, ?)",
-                params![board_id, i, j],
-            )?;
-        }
-        tx.commit()?;
-
         Ok(board_id)
     }
 
     pub fn load_board(&self, board_id: i64) -> Result<Board, Error> {
-        let (size, iterations, period) = self.connection.query_row(
-            "SELECT size,iterations,period FROM Boards WHERE id = ?",
-            params![board_id],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
-        )?;
+        let (id, size, cells_str, iterations, period): (u32, u32, String, usize, usize) =
+            self.connection.query_row(
+                "SELECT id, size, cells, iterations, period FROM Boards WHERE id = ?",
+                params![board_id],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                    ))
+                },
+            )?;
 
-        let mut stmt = self.connection.prepare(
-            "SELECT i,j FROM Boards INNER JOIN Cells ON Boards.id = Cells.board_id WHERE Boards.id = ?",
-        )?;
-        let cells_iter = stmt.query_map(params![board_id], |row| Ok((row.get(0)?, row.get(1)?)))?;
-
-        let mut cells: Vec<(u32, u32)> = vec![];
-
-        for cell in cells_iter {
-            let cell = cell.expect("Error in loading board");
-            cells.push((cell.0, cell.1))
-        }
+        let cells = Db::deserialize_cells(&cells_str);
 
         Ok(Board {
+            id: Some(id),
             size,
             iterations,
-            period,
+            period: Some(period),
             cells,
         })
     }
 
-    // pub fn load_boards(&self) -> Result<Vec<Board>, Error> {
+    pub fn load_boards(&self) -> Result<Vec<Board>, Error> {
+        let mut stmt = self
+            .connection
+            .prepare("SELECT id, size, iterations, period, cells FROM Boards")?;
 
-    // }
+        let boards_iter = stmt.query_map([], |row| {
+            let cells = Db::deserialize_cells(&row.get(4)?);
+            Ok(Board {
+                id: row.get(0)?,
+                size: row.get(1)?,
+                iterations: row.get(2)?,
+                period: row.get(3)?,
+                cells,
+            })
+        })?;
+
+        let mut boards = vec![];
+
+        for board in boards_iter {
+            boards.push(board.unwrap());
+        }
+
+        Ok(boards)
+    }
+
+    fn serialize_cells(cells: &Vec<(u32, u32)>) -> String {
+        let mut cells: String = cells.iter().map(|(i, j)| format!("{}-{},", i, j)).collect();
+        cells.pop(); // we don't want the last |
+        cells
+    }
+
+    fn deserialize_cells(cells_str: &String) -> Vec<(u32, u32)> {
+        let cells = cells_str
+            .split(",")
+            .map(|str| {
+                let mut subsplit = str.split("-");
+                let i: u32 = subsplit.next().unwrap().parse().unwrap();
+                let j: u32 = subsplit.next().unwrap().parse().unwrap();
+                (i, j)
+            })
+            .collect();
+
+        cells
+    }
 }
 
 #[test]
 fn saving_and_loading_boards() {
-    let manager = SqliteConnectionManager::file("database.test.db");
+    let manager = SqliteConnectionManager::memory();
     let pool = r2d2::Pool::new(manager).unwrap();
     Db::initialize(pool.get().unwrap());
     let mut db = Db::new(pool.get().unwrap());
 
     let board = Board {
+        id: None,
         size: 10,
         iterations: 100,
         period: Some(10),
-        cells: vec![(1,1), (2,2), (3,3)],
+        cells: vec![(1, 1), (2, 2), (3, 3)],
     };
 
     let board_id = db.save_board(&board).unwrap();
@@ -117,4 +144,11 @@ fn saving_and_loading_boards() {
     assert_eq!(board.iterations, retrieved_board.iterations);
     assert_eq!(board.period, retrieved_board.period);
     assert_eq!(board.cells, retrieved_board.cells);
+
+    let id = retrieved_board.id.unwrap();
+    assert!(id > 0);
+
+    let retrieved_boards = db.load_boards().unwrap();
+
+    assert_eq!(retrieved_boards.len(), 1);
 }
