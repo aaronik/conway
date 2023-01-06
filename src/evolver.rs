@@ -79,7 +79,10 @@ impl Evolver {
             panic!("retrieve_two_fit_individuals called with fewer than two boards in the db");
         }
 
-        (boards.pop().unwrap(), boards.pop().unwrap())
+        let first_index = thread_rng().gen_range(0..boards.len());
+        let second_index = thread_rng().gen_range(0..boards.len());
+
+        (boards.remove(first_index), boards.remove(second_index))
     }
 
     fn generate_random_starter_board(&self) -> board::Unsolved {
@@ -111,7 +114,7 @@ impl Evolver {
             let snapshot = crate::Snapshot::new(size);
             let canvas: Option<Canvas>;
 
-            // This is weird, makes a kind of illusion of there being one.
+            // This is weird, makes a kind of illusion of there being a single evolution.
             // We're really just showing the results from a single thread.
             if thread_num == 0 {
                 canvas = Some(Canvas::new(size, size));
