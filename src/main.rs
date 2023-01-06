@@ -23,7 +23,7 @@ fn main() {
 
     let mut threads: Vec<JoinHandle<()>> = vec![];
 
-    for thread_num in 1..=8 {
+    for thread_num in 0..=7 {
         let pool = pool.clone();
         let db = Db::new(pool.get().unwrap());
 

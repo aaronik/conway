@@ -10,4 +10,3 @@ pub use snapshot::Snapshot;
 pub use game::Game;
 pub use evolver::Evolver;
 pub use db::Db;
-pub use board::Board;
