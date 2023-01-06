@@ -1,35 +1,3 @@
-// pub struct Snapshot {
-//     previous: String,
-//     current: String,
-// }
-
-// impl Snapshot {
-//     pub fn new() -> Snapshot {
-//         Snapshot {
-//             previous: String::from(""),
-//             current: String::from(""),
-//         }
-//     }
-
-//     pub fn add(&mut self, i: u32, j: u32) {
-//         self.current.push_str(&format!("{i}-{j}|"));
-//     }
-
-//     /// Is the current build up snapshot the same as the previous one, the one that most recently
-//     /// got cycled?
-//     pub fn is_same(&self) -> bool {
-//         self.current == self.previous
-//     }
-
-//     /// Move the current snapshot to the previous slot and reset current for another round
-//     pub fn cycle(&mut self) {
-//         self.previous.clear();
-//         self.previous
-//             .push_str(&self.current.drain(..self.current.len()).collect::<String>()[..]);
-//         self.current.clear();
-//     }
-// }
-
 // This needs to:
 // * Keep a list of every state in the history of an evolution
 // * Be able to compare those states and return equal for two equivalent states
@@ -69,6 +37,9 @@ impl Snapshot {
         }
     }
 
+    /// Add a single cell to the uncommitted memory. The reason we do one cell at a time
+    /// instead of all of them at once is so that we only have to go through the whole list
+    /// of cells a single time per board iteration. One loop over all of them is enough :)
     pub fn add_cell(&mut self, i: u32, j: u32) {
         let cell_number = self.size * i + j;
         self.current_iteration_cells.insert(cell_number);
@@ -86,12 +57,10 @@ impl Snapshot {
             return None;
         };
 
-        // TODO Won't necessarily be the first.
-        // * Adds an existing state
-        // * hits commit and sets has_repeat to true
-        // * Adds another state
         let most_recent = self.grids_vec.last().unwrap();
 
+        // Go through our vector of states, starting from the most recent, and find how many back
+        // we have to go to get to the same one.
         let period = self.grids_vec
             .iter()
             .rev()
@@ -103,6 +72,11 @@ impl Snapshot {
     }
 
     /// Commit the cells that were added to memory as a single grid state.
+    /// Remember we want to add each cell to this snapshot the one time we go through
+    /// the list of cells. So we need this function here to be called once all of those
+    /// have been gone through. And we don't know the order in which those cells will
+    /// be called, so we do need to go through our own list one time here, but it's pre-sorted
+    /// because it's in a binary tree so at least we don't have to sort it.
     pub fn commit_cells(&mut self) {
         let serialized = self.serialize_cells();
         self.grids_vec.push(serialized.clone()); // TODO It'd be way better if it lived in
@@ -116,6 +90,10 @@ impl Snapshot {
         self.current_iteration_cells.clear();
     }
 
+    /// We need to turn our cells into a single string so we can store them as a key into a
+    /// HashSet, which is what allows us to check and see if we have a repeat state in O(1)
+    /// time, which is critical b/c these boards can get into the thousands of iterations and we
+    /// can't have our check time growing with that number.
     fn serialize_cells(&self) -> String {
         let mut serialized = String::from("");
 

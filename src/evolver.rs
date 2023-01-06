@@ -1,6 +1,6 @@
 use crate::{board, Cells};
 use drawille::Canvas;
-use rand::{Rng, thread_rng};
+use rand::{thread_rng, Rng};
 
 // The evolver's responsibility is to:
 // * Orchestrate a single thread of evolution
@@ -80,11 +80,13 @@ impl Evolver {
         }
 
         let first_index = thread_rng().gen_range(0..boards.len());
-        let second_index = thread_rng().gen_range(0..boards.len());
+        let second_index = thread_rng().gen_range(0..boards.len() - 1);
 
         (boards.remove(first_index), boards.remove(second_index))
     }
 
+    // Maybe we don't have enough boards in the pool -- sometimes we need to just make
+    // a random one
     fn generate_random_starter_board(&self) -> board::Unsolved {
         let num_cells = thread_rng().gen_range(1..=200);
         let initial_cells = random_cells(self.size, num_cells);
@@ -103,11 +105,10 @@ impl Evolver {
         // * Size of starting area, right now it's 1/5 right in the middle
 
         loop {
-            // To create a real evolution, we're gonna want to:
-            // * Pick two boards at random from the list of best performers
-
+            // Get our strategically generated new board
             let board = self.get_next_board();
 
+            // populate our cells container
             let mut cells = Cells::new(size);
             cells.birth_multiple(&board.cells);
 
@@ -116,12 +117,18 @@ impl Evolver {
 
             // This is weird, makes a kind of illusion of there being a single evolution.
             // We're really just showing the results from a single thread.
+            // TODO Let's get rid of this and have an output that reports when a new board
+            // has been found. Then we can have a selector at startup that asks whether
+            // we want to run the evolution (and with how many threads) or if we want
+            // to visualize some that have already been found.
             if thread_num == 0 {
                 canvas = Some(Canvas::new(size, size));
             } else {
                 canvas = None
             }
 
+            // Game's responsibility is to provide the step() function and a few
+            // winning metrics.
             let mut game = crate::Game::new(snapshot, cells, canvas);
 
             // Iterate a single board
@@ -139,6 +146,8 @@ impl Evolver {
                 }
             }
 
+            // After that loop, the board's been solved. Now we'll check it to see
+            // its fitness.
             let new_solved_board = board::Solved {
                 size,
                 cells: board.cells,
@@ -146,34 +155,39 @@ impl Evolver {
                 period: game.snapshot.period(),
             };
 
-            // * Remove weakest board (fitness)
             let boards = self.db.load_boards().unwrap();
+
+            // We'll keep the best 10 configurations.
             if boards.len() < 10 {
-                // TODO use var instead of raw 10
-                // Add boards to the list
+                // If we don't have 10 yet, every configuration is in the best 10.
                 self.db
                     .save_board(&new_solved_board)
                     .expect("error saving board");
             } else {
-                // Check our board against all the rest
-                // If we're not the weakest, delete that and add ours
+                // Find the least fit saved board
+                let mut least_fit = boards.get(0).unwrap();
                 for board in &boards {
-                    let new_measurable = board::Measurable::Solved(&new_solved_board);
-                    let old_measurable = board::Measurable::Saved(board);
-                    if Evolver::measure_fitness(&new_measurable)
-                        > Evolver::measure_fitness(&old_measurable)
-                    {
-                        self.db.save_board(&new_solved_board).unwrap();
-                        self.db.delete_board(&board.id).unwrap();
-                        break; // replace only a single board, so the best board doesn't
-                               // overwrite the whole set
+                    let least = board::Measurable::Saved(least_fit);
+                    let current = board::Measurable::Saved(board);
+                    if Evolver::measure_fitness(&least) > Evolver::measure_fitness(&current) {
+                        least_fit = board;
                     }
+                }
+
+                // Check our newly solved board against the least fit of the saved boards
+                let least = board::Measurable::Saved(least_fit);
+                let ours = board::Measurable::Solved(&new_solved_board);
+                if Evolver::measure_fitness(&ours) > Evolver::measure_fitness(&least) {
+                    // If we're more fit than the least fit one, replace it in the db
+                    self.db.save_board(&new_solved_board).unwrap();
+                    self.db.delete_board(&least_fit.id).unwrap();
                 }
             }
         }
     }
 }
 
+// TODO We should evolve over the numbers in range_i too
 fn random_cells(size: u32, num: usize) -> Vec<(u32, u32)> {
     let mut cells = vec![];
 

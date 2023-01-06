@@ -3,7 +3,6 @@ extern crate drawille;
 use conway::Db;
 use conway::Evolver;
 use std::thread::{self, JoinHandle};
-// use termsize;
 
 extern crate r2d2;
 extern crate r2d2_sqlite;
@@ -11,31 +10,31 @@ extern crate rusqlite;
 
 use r2d2_sqlite::SqliteConnectionManager;
 
+// An evolutionary solver to conway's game of life, in color!
+
 fn main() {
-    // let termsize::Size { rows, cols } = termsize::get().unwrap();
-    // let size: u32 = std::cmp::min(rows, cols) as u32;
+    // For the time being we'll just stick with 150 characters^2 for the board size
     let size: u32 = 150;
 
     let manager = SqliteConnectionManager::file("database.db");
     let pool = r2d2::Pool::new(manager).unwrap();
 
+    // Make sure the database file and tables exist
     Db::initialize(pool.get().unwrap());
 
-    let mut threads: Vec<JoinHandle<()>> = vec![];
-
-    for thread_num in 0..=7 {
+    // Spawn a new evolution for this many threads
+    (0..=2).map(|thread_num| {
         let pool = pool.clone();
         let db = Db::new(pool.get().unwrap());
 
-        let thread_return = thread::spawn(move || {
+        thread::spawn(move || {
             let mut evolution = Evolver::new(size, db);
             evolution.begin_evolving(thread_num);
-        });
-
-        threads.push(thread_return);
-    }
-
-    for thread in threads {
-        thread.join().unwrap();
-    }
+        })
+    })
+        .collect::<Vec<JoinHandle<()>>>()
+        .into_iter()
+        .map(thread::JoinHandle::join)
+        .collect::<Result<(), _>>()
+        .unwrap();
 }

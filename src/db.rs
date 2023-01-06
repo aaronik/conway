@@ -48,6 +48,7 @@ impl Db {
         Ok(board_id)
     }
 
+    /// Get a single board from the db
     pub fn load_board(&self, board_id: i64) -> Result<board::Saved, Error> {
         let (id, size, cells_str, iterations, period): (i64, u32, String, usize, usize) =
             self.connection.query_row(
@@ -75,6 +76,7 @@ impl Db {
         })
     }
 
+    /// Get all the boards from the db
     pub fn load_boards(&self) -> Result<Vec<board::Saved>, Error> {
         let mut stmt = self
             .connection
@@ -109,6 +111,7 @@ impl Db {
         Ok(())
     }
 
+    /// How many boards are there in the db?
     pub fn get_board_count(&self) -> Result<u64, Error> {
         let count = self.connection.query_row(
             "SELECT COUNT(*) FROM Boards",
@@ -119,6 +122,8 @@ impl Db {
         Ok(count)
     }
 
+    /// For simplicity's sake, even though it's not technically correct, we're stringifying the
+    /// board's cells and storing them in a single db cell in the Boards table.
     fn serialize_cells(cells: &Vec<(u32, u32)>) -> String {
         let mut cells: String = cells.iter().map(|(i, j)| format!("{}-{},", i, j)).collect();
         cells.pop(); // we don't want the last |

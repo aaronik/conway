@@ -1,6 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 /// An abstraction of binary entries on a 2d grid
+/// The responsibilities here are to keep track of the cells in the grid and supply helper methods
+/// to manage those cells
 pub struct Cells {
     extent_cells: HashMap<(u32, u32), usize>,
     uncommitted_cells: HashMap<(u32, u32), usize>,
