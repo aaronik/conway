@@ -97,7 +97,7 @@ impl Evolver {
         }
     }
 
-    pub fn begin_evolving(&mut self, thread_num: i32) {
+    pub fn begin_evolving(&mut self, thread_num: u32) {
         let size = self.size;
 
         // Variables we're iterating over, and can bring around via mating
