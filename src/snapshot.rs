@@ -1,20 +1,16 @@
 // This needs to:
 // * Keep a list of every state in the history of an evolution
 // * Be able to compare those states and return equal for two equivalent states
-// * However there's no guarantee from our Cells grid the order in which living cells
-// will be returned, so we need to be order agnostic
+// * However there's no guarantee from our Cells grid the order in which living cells will be
+//   returned, so we need to be order agnostic
 // * Be fast
 //
-// TODO What're we doin here, it's actually pretty interesting and should be moved over
-// to a readme showing off all the mathiness.
-// Where String comes from the serialization of a BTreeSet. Yes, each
-// cell in the grid can be represented by a number: SIZE*i + j. Thus we
-// can have ordering, and a BTreeSet. That set can be serialized
-// deterministcally into a string, which can be stored in a hashset.
-// Along side this hash set can be a vector with the strings, for
-// ordering. So at each iteration of the grid, we can check in O(1)
-// if this has been a state that we've seen yet, and then if so we can
-// see how far back it happened, and that's our fitness.
+// Where the <String> within the grids_vec and grids_sec fields comes from the serialization of a
+// BTreeSet. Yes, each cell in the grid can be represented by a number: SIZE*i + j. Thus we can
+// have ordering, and a BTreeSet. That set can be serialized deterministcally into a string, which
+// can be stored in a hashset. Along side this hash set can be a vector with the strings, for
+// ordering. So at each iteration of the grid, we can check in O(1) if this has been a state that
+// we've seen yet, and then if so we can see how far back it happened, and that's our fitness.
 
 use std::collections::{BTreeSet, HashSet};
 
