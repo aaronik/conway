@@ -2,8 +2,8 @@ extern crate drawille;
 
 use clap::Parser;
 use conway::{Args, Commands, Db, Evolver};
-use r2d2::PooledConnection;
 use core::time;
+use r2d2::PooledConnection;
 use std::thread::{self, JoinHandle};
 
 extern crate r2d2;
@@ -27,7 +27,7 @@ fn main() {
     match &args.command {
         Commands::Evolve { threads } => evolve(*threads, pool.clone(), size),
 
-        Commands::Display { delay }=> {
+        Commands::Display { delay } => {
             display(*delay, pool.clone().get().unwrap());
         }
     }
@@ -114,10 +114,8 @@ fn display(delay: usize, connection: PooledConnection<SqliteConnectionManager>) 
             break;
         }
 
+        println!("iteration #{}", game.iterations);
+
         thread::sleep(time::Duration::from_millis(delay as u64));
     }
-
-    // TODO
-    // * Replace the display in evolve mode with output about trying / failing / succeeding in
-    // creating a new board
 }
