@@ -1,5 +1,4 @@
 use crate::{board, Cells};
-use drawille::Canvas;
 use rand::{thread_rng, Rng};
 
 // The evolver's responsibility is to:
@@ -113,23 +112,10 @@ impl Evolver {
             cells.birth_multiple(&board.cells);
 
             let snapshot = crate::Snapshot::new(size);
-            let canvas: Option<Canvas>;
-
-            // This is weird, makes a kind of illusion of there being a single evolution.
-            // We're really just showing the results from a single thread.
-            // TODO Let's get rid of this and have an output that reports when a new board
-            // has been found. Then we can have a selector at startup that asks whether
-            // we want to run the evolution (and with how many threads) or if we want
-            // to visualize some that have already been found.
-            if thread_num == 0 {
-                canvas = Some(Canvas::new(size, size));
-            } else {
-                canvas = None
-            }
 
             // Game's responsibility is to provide the step() function and a few
             // winning metrics.
-            let mut game = crate::Game::new(snapshot, cells, canvas);
+            let mut game = crate::Game::new(Some(snapshot), cells, None);
 
             // Iterate a single board
             loop {
@@ -141,8 +127,10 @@ impl Evolver {
                 }
 
                 // Bail if we're in an infinite loop
-                if game.snapshot.has_repeat() {
-                    break;
+                if let Some(snapshot) = &game.snapshot {
+                    if snapshot.has_repeat() {
+                        break;
+                    }
                 }
             }
 
@@ -152,7 +140,7 @@ impl Evolver {
                 size,
                 cells: board.cells,
                 iterations: game.iterations,
-                period: game.snapshot.period(),
+                period: game.snapshot.unwrap().period(),
             };
 
             let boards = self.db.load_boards().unwrap();
@@ -160,6 +148,10 @@ impl Evolver {
             // We'll keep the best 10 configurations.
             if boards.len() < 10 {
                 // If we don't have 10 yet, every configuration is in the best 10.
+                println!(
+                    "thread {} found insuficiently populated database and is saving board",
+                    thread_num
+                );
                 self.db
                     .save_board(&new_solved_board)
                     .expect("error saving board");
@@ -178,9 +170,17 @@ impl Evolver {
                 let least = board::Measurable::Saved(least_fit);
                 let ours = board::Measurable::Solved(&new_solved_board);
                 if Evolver::measure_fitness(&ours) > Evolver::measure_fitness(&least) {
+                    println!(
+                    "thread {} made a more fit board! It is of period {:?} and has {} iterations",
+                    thread_num,
+                    new_solved_board.period,
+                    new_solved_board.iterations
+                );
                     // If we're more fit than the least fit one, replace it in the db
                     self.db.save_board(&new_solved_board).unwrap();
                     self.db.delete_board(&least_fit.id).unwrap();
+                } else {
+                    println!("thread {} made an unfit board", thread_num);
                 }
             }
         }

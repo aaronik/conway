@@ -4,7 +4,7 @@ use drawille::PixelColor;
 // use rand::Rng;
 
 pub struct Game {
-    pub snapshot: Snapshot,
+    pub snapshot: Option<Snapshot>,
     pub canvas: Option<Canvas>,
     pub cells: Cells,
     pub iterations: usize,
@@ -15,7 +15,7 @@ impl Game {
     /// and it'll print the game to the screen at every step, and a snapshot and it'll keep track
     /// of what's gone on.
     pub fn new(
-        snapshot: Snapshot,
+        snapshot: Option<Snapshot>,
         cells: Cells,
         canvas: Option<Canvas>,
     ) -> Game {
@@ -70,7 +70,9 @@ impl Game {
                 // Draw the cell if it's alive, add to snapshot
                 // This'll be behind by one iteration
                 if self.cells.is_alive(i, j) {
-                    self.snapshot.add_cell(i, j);
+                    if let Some(snapshot) = &mut self.snapshot {
+                        snapshot.add_cell(i, j);
+                    }
 
                     // If there's a canvas, draw on it
                     if let Some(canvas) = &mut self.canvas {
@@ -94,7 +96,9 @@ impl Game {
         }
 
         // Keep track
-        self.snapshot.commit_cells();
+        if let Some(snapshot) = &mut self.snapshot {
+            snapshot.commit_cells();
+        }
 
     }
 }

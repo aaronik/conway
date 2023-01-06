@@ -18,11 +18,15 @@ pub enum Commands {
     Evolve {
         /// How many threads to use in evolve mode
         #[arg(short, long, default_value_t = 4)]
-        threads: u32,
+        threads: usize,
     },
 
     /// Display one of the evolved boards
-    Display
+    Display {
+        /// How long (in ms) to wait between each board iteration
+        #[arg(short, long, default_value_t = 5)]
+        delay: usize,
+    }
 }
 
 
