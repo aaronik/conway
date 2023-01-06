@@ -16,48 +16,53 @@ impl Evolver {
         Self { db, size }
     }
 
-    /// this fitness function weighs period much heavier than iterations,
-    /// because that's what I think it should be.
-    pub fn measure_fitness(board: &board::Measurable) -> isize {
-        fn measure(period: Option<usize>, iterations: usize) -> isize {
-            match period {
-                Some(period) => (period * 20 + iterations) as isize,
-                None => iterations as isize,
-            }
-        }
+    /// Measure the fitness for a "saved" board
+    pub fn measure_fitness_saved(board: &board::Saved) -> isize {
+        measure(board.solved.period, board.solved.iterations)
+    }
 
-        match &board {
-            &board::Measurable::Saved(s) => measure(s.period, s.iterations),
-            &board::Measurable::Solved(s) => measure(s.period, s.iterations),
-        }
+    /// Measure the fitness for a "solved" board
+    pub fn measure_fitness_solved(board: &board::Solved) -> isize {
+        measure(board.period, board.iterations)
     }
 
     /// Variables we mate over:
     /// * number of cells
-    pub fn mate(board1: &board::Saved, board2: &board::Saved) -> board::Unsolved {
+    /// * number of starting subdivisions
+    /// * dispersement over starting subdivisions
+    pub fn mate(board1: &board::Saved, board2: &board::Saved) -> board::Initial {
         // Mate
-        let mut num_cells = (board1.cells.len() + board2.cells.len()) / 2;
+
+        // Get the average of the two boards' cell counts as a starting point
+        let mut num_cells =
+            (board1.solved.initial.cells.len() + board2.solved.initial.cells.len()) / 2;
+        let mut starting_subdivisions = (board1.solved.initial.starting_subdivisions
+            + board2.solved.initial.starting_subdivisions)
+            / 2;
+        let mut starting_subdiv_utilization = (board1.solved.initial.starting_subdiv_utilization
+            + board2.solved.initial.starting_subdiv_utilization)
+            / 2;
 
         // Mutate
-        let addition = thread_rng().gen_range(0..=5);
-        if thread_rng().gen_bool(0.5) {
-            num_cells = num_cells + addition
-        } else {
-            // Gotta make sure not to dip below 0
-            if num_cells - addition > 0 {
-                num_cells = num_cells - addition
-            }
-        }
+        num_cells = mutate_integer(&num_cells, 25);
+        starting_subdivisions = mutate_integer(&starting_subdivisions, 3);
+        starting_subdiv_utilization = mutate_integer(&starting_subdiv_utilization, 3);
 
-        board::Unsolved {
-            cells: random_cells(board1.size, num_cells),
-            size: board1.size,
+        // we can't utilize more than exists
+        starting_subdiv_utilization =
+            std::cmp::min(starting_subdivisions, starting_subdiv_utilization);
+
+        board::Initial {
+            size: board1.solved.initial.size,
+            cells: random_cells(board1.solved.initial.size, num_cells),
+            starting_subdivisions,
+            starting_subdiv_utilization,
         }
     }
 
     /// Via some strategy, gets a new board ready to solve. If there're enough boards in the DB,
     /// it'll mate two and return the child. Otherwise it'll create a random one.
-    fn get_next_board(&self) -> board::Unsolved {
+    fn get_next_board(&self) -> board::Initial {
         let board_count = self.db.get_board_count().unwrap();
 
         if board_count < 2 {
@@ -86,13 +91,20 @@ impl Evolver {
 
     // Maybe we don't have enough boards in the pool -- sometimes we need to just make
     // a random one
-    fn generate_random_starter_board(&self) -> board::Unsolved {
-        let num_cells = thread_rng().gen_range(1..=200);
-        let initial_cells = random_cells(self.size, num_cells);
+    fn generate_random_starter_board(&self) -> board::Initial {
+        let num_cells = thread_rng().gen_range(1..=1000);
+        let starting_subdivisions = thread_rng().gen_range(1..=15);
+        let mut starting_subdiv_utilization = thread_rng().gen_range(1..=15);
 
-        board::Unsolved {
+        // We cannot utilize more than what we have
+        starting_subdiv_utilization =
+            std::cmp::min(starting_subdivisions, starting_subdiv_utilization);
+
+        board::Initial {
             size: self.size,
-            cells: initial_cells,
+            starting_subdivisions,
+            starting_subdiv_utilization,
+            cells: random_cells(self.size, num_cells),
         }
     }
 
@@ -137,8 +149,12 @@ impl Evolver {
             // After that loop, the board's been solved. Now we'll check it to see
             // its fitness.
             let new_solved_board = board::Solved {
-                size,
-                cells: board.cells,
+                initial: board::Initial {
+                    size,
+                    cells: board.cells,
+                    starting_subdivisions: board.starting_subdivisions,
+                    starting_subdiv_utilization: board.starting_subdiv_utilization,
+                },
                 iterations: game.iterations,
                 period: game.snapshot.unwrap().period(),
             };
@@ -159,28 +175,38 @@ impl Evolver {
                 // Find the least fit saved board
                 let mut least_fit = boards.get(0).unwrap();
                 for board in &boards {
-                    let least = board::Measurable::Saved(least_fit);
-                    let current = board::Measurable::Saved(board);
-                    if Evolver::measure_fitness(&least) > Evolver::measure_fitness(&current) {
+                    if Evolver::measure_fitness_saved(&least_fit)
+                        > Evolver::measure_fitness_saved(board)
+                    {
                         least_fit = board;
                     }
                 }
 
                 // Check our newly solved board against the least fit of the saved boards
-                let least = board::Measurable::Saved(least_fit);
-                let ours = board::Measurable::Solved(&new_solved_board);
-                if Evolver::measure_fitness(&ours) > Evolver::measure_fitness(&least) {
+                if Evolver::measure_fitness_solved(&new_solved_board)
+                    > Evolver::measure_fitness_saved(&least_fit)
+                {
                     println!(
-                    "thread {} made a more fit board! It is of period {:?} and has {} iterations",
-                    thread_num,
-                    new_solved_board.period,
-                    new_solved_board.iterations
-                );
+                        "thread {} made a more fit board! It has {} cells, starting_subdivisions of {}, starting_subdiv_utilization of {}
+                        and is of period {:?} and has {} iterations",
+                        thread_num,
+                        new_solved_board.initial.cells.len(),
+                        new_solved_board.initial.starting_subdivisions,
+                        new_solved_board.initial.starting_subdiv_utilization,
+                        new_solved_board.period,
+                        new_solved_board.iterations
+                    );
                     // If we're more fit than the least fit one, replace it in the db
                     self.db.save_board(&new_solved_board).unwrap();
                     self.db.delete_board(&least_fit.id).unwrap();
                 } else {
-                    println!("thread {} made an unfit board", thread_num);
+                    println!(
+                        "thread {} made an unfit board with {} cells, starting_subdivisions of {} and starting_subdiv_utilization of {}",
+                        thread_num,
+                        new_solved_board.initial.cells.len(),
+                        new_solved_board.initial.starting_subdivisions,
+                        new_solved_board.initial.starting_subdiv_utilization
+                    );
                 }
             }
         }
@@ -200,4 +226,27 @@ fn random_cells(size: u32, num: usize) -> Vec<(u32, u32)> {
     }
 
     cells
+}
+
+/// This is actually the main fitness measurement right here
+fn measure(period: Option<usize>, iterations: usize) -> isize {
+    match period {
+        Some(period) => (period * 20 + iterations) as isize,
+        None => iterations as isize,
+    }
+}
+
+fn mutate_integer(int: &usize, variation: usize) -> usize {
+    let mut mutated = 0;
+    let addition = thread_rng().gen_range(0..=variation);
+    if thread_rng().gen_bool(0.5) {
+        mutated = int + &addition;
+    } else {
+        // Gotta make sure not to dip below 0
+        if int >= &addition {
+            mutated = int - &addition;
+        }
+    }
+
+    mutated
 }

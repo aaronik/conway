@@ -60,21 +60,21 @@ fn display(delay: usize, connection: PooledConnection<SqliteConnectionManager>) 
 
     // Sort em up for easier picking
     boards.sort_by_key(|b| {
-        let measurable = conway::board::Measurable::Saved(b);
-        Evolver::measure_fitness(&measurable)
+        Evolver::measure_fitness_saved(&b)
     });
 
     // List all the boards
     for board in boards {
-        if let Some(period) = board.period {
+        if let Some(period) = board.solved.period {
+            // TODO can we just print the whole board SANS the cells?
             println!(
                 "id: {} || Period {} with {} unique iterations",
-                board.id, period, board.iterations
+                board.id, period, board.solved.iterations
             );
         } else {
             println!(
                 "id: {} || Non repeating with {} unique iterations",
-                board.id, board.iterations
+                board.id, board.solved.iterations
             );
         }
     }
@@ -99,9 +99,9 @@ fn display(delay: usize, connection: PooledConnection<SqliteConnectionManager>) 
     );
 
     // Prepare the game
-    let mut cells = conway::Cells::new(board.size);
-    cells.birth_multiple(&board.cells);
-    let canvas = Some(drawille::Canvas::new(board.size, board.size));
+    let mut cells = conway::Cells::new(board.solved.initial.size);
+    cells.birth_multiple(&board.solved.initial.cells);
+    let canvas = Some(drawille::Canvas::new(board.solved.initial.size, board.solved.initial.size));
     let mut game = conway::Game::new(None, cells, canvas);
 
     // Run the game
