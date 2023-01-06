@@ -33,7 +33,7 @@ impl Db {
 
     /// Takes a number of cells and a board size and saves that board to the db
     /// Returns Result<board_id>
-    pub fn save_board(&mut self, board: &Board) -> Result<i64, Error> {
+    pub fn save_board(&mut self, board: &Board::Solved) -> Result<i64, Error> {
         let cells = Db::serialize_cells(&board.cells);
 
         // Insert one new board
@@ -48,7 +48,7 @@ impl Db {
         Ok(board_id)
     }
 
-    pub fn load_board(&self, board_id: i64) -> Result<Board, Error> {
+    pub fn load_board(&self, board_id: i64) -> Result<Board::Saved, Error> {
         let (id, size, cells_str, iterations, period): (i64, u32, String, usize, usize) =
             self.connection.query_row(
                 "SELECT id, size, cells, iterations, period FROM Boards WHERE id = ?",
@@ -66,8 +66,8 @@ impl Db {
 
         let cells = Db::deserialize_cells(&cells_str);
 
-        Ok(Board {
-            id: Some(id),
+        Ok(Board::Saved {
+            id,
             size,
             iterations,
             period: Some(period),
@@ -75,14 +75,14 @@ impl Db {
         })
     }
 
-    pub fn load_boards(&self) -> Result<Vec<Board>, Error> {
+    pub fn load_boards(&self) -> Result<Vec<Board::Saved>, Error> {
         let mut stmt = self
             .connection
             .prepare("SELECT id, size, iterations, period, cells FROM Boards")?;
 
         let boards_iter = stmt.query_map([], |row| {
             let cells = Db::deserialize_cells(&row.get(4)?);
-            Ok(Board {
+            Ok(Board::Saved {
                 id: row.get(0)?,
                 size: row.get(1)?,
                 iterations: row.get(2)?,
@@ -100,13 +100,23 @@ impl Db {
         Ok(boards)
     }
 
-    pub fn delete_board(&mut self, board_id: i64) -> Result<(), Error> {
+    pub fn delete_board(&mut self, board_id: &i64) -> Result<(), Error> {
         self.connection.execute(
             "DELETE FROM Boards WHERE id = ?",
             params![board_id],
         )?;
 
         Ok(())
+    }
+
+    pub fn get_board_count(&self) -> Result<u64, Error> {
+        let count = self.connection.query_row(
+            "SELECT COUNT(*) FROM Boards",
+            params![],
+            |row| Ok(row.get(0)?)
+            )?;
+
+        Ok(count)
     }
 
     fn serialize_cells(cells: &Vec<(u32, u32)>) -> String {
@@ -137,8 +147,7 @@ fn saving_and_loading_boards() {
     Db::initialize(pool.get().unwrap());
     let mut db = Db::new(pool.get().unwrap());
 
-    let board = Board {
-        id: None,
+    let board = Board::Solved {
         size: 10,
         iterations: 100,
         period: Some(10),
@@ -154,7 +163,7 @@ fn saving_and_loading_boards() {
     assert_eq!(board.period, retrieved_board.period);
     assert_eq!(board.cells, retrieved_board.cells);
 
-    let id = retrieved_board.id.unwrap();
+    let id = retrieved_board.id;
     assert!(id > 0);
 
     let retrieved_boards = db.load_boards().unwrap();

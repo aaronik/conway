@@ -4,7 +4,7 @@ use drawille::PixelColor;
 // use rand::Rng;
 
 pub struct Game {
-    pub snapshot: Option<Snapshot>,
+    pub snapshot: Snapshot,
     pub canvas: Option<Canvas>,
     pub cells: Cells,
     pub iterations: usize,
@@ -12,9 +12,10 @@ pub struct Game {
 
 impl Game {
     /// Implement a new Game object, which orchestrates the conways game of life. Pass in a canvas
-    /// and it'll print the game to the screen at every step.
+    /// and it'll print the game to the screen at every step, and a snapshot and it'll keep track
+    /// of what's gone on.
     pub fn new(
-        snapshot: Option<Snapshot>,
+        snapshot: Snapshot,
         cells: Cells,
         canvas: Option<Canvas>,
     ) -> Game {
@@ -32,6 +33,9 @@ impl Game {
     // Death by overcrowding: Each live cell with four or more live neighbors will die in the next generation.
     // Survival: Each live cell with either two or three live neighbors will remain alive for the next generation.
 
+    /// Make one iteration on the board. Go through each cell and calculate whether it's alive or
+    /// dead on the next pass. Paint to the screen, keep track of iteration variable, manage
+    /// snapshot.
     pub fn step(&mut self) {
         self.cells
             .living_cells_and_neighbors()
@@ -66,9 +70,7 @@ impl Game {
                 // Draw the cell if it's alive, add to snapshot
                 // This'll be behind by one iteration
                 if self.cells.is_alive(i, j) {
-                    if let Some(snapshot) = &mut self.snapshot {
-                        snapshot.add_cell(i, j);
-                    }
+                    self.snapshot.add_cell(i, j);
 
                     // If there's a canvas, draw on it
                     if let Some(canvas) = &mut self.canvas {
@@ -92,9 +94,7 @@ impl Game {
         }
 
         // Keep track
-        if let Some(snapshot) = &mut self.snapshot {
-            snapshot.commit_cells();
-        }
+        self.snapshot.commit_cells();
 
     }
 }
