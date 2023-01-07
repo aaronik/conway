@@ -20,6 +20,15 @@ This is a rust implementation of Conway's game of life. It has a few notable fea
     or in display mode. Running it in display mode lets you see the evolved
     initial states stored in your db.
 
+* **Crazy fast** -- In the screencast above, a delay was introduced between
+    each frame. Otherwise it's just _crazy fast_. _Blazingly fast_, some might
+    say. On my old laptop it can do tens of thousands of frames per second.
+    You can configure this frame delay from the command line.
+
+* **Multithreaded Evolution** -- When you run it in evolution mode, it runs on
+    multiple threads. You can configure how many threads you want to use from the
+    command line.
+
 ## Notable aspects of this program
 
 ### Snapshot
