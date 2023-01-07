@@ -1,5 +1,7 @@
 # Conway's game of life
 
+https://user-images.githubusercontent.com/1324601/211125616-aeb53d56-e08d-4108-8e55-f13a83dc01bb.mp4
+
 This is a rust implementation of Conway's game of life. It has a few notable features:
 
 * **Terminal output** -- This program prints output to a terminal using brail
