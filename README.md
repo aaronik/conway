@@ -69,3 +69,8 @@ iterations of a board grows.
   and placing it around the board in different configurations. Maybe a thing
   is something that repeats, and its fitness can be how many iterations it repeats
   on.
+
+* One interesting modification to make that could lead to some really cool finds
+  is to look for starting configurations that evetually lead back to _themselves_.
+  That'd probably find some really neat flyers and it would be really easy to
+  integrate into this codebase!
